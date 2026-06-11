@@ -132,10 +132,14 @@ function initPanel() {
     const role = document.getElementById("new-role").value;
     if (!name) { showToast("Digite o nome da pessoa."); return; }
 
-    await createTeamMember({ name, role });
-    document.getElementById("new-name").value = "";
-    showToast("Pessoa adicionada!");
-    loadMembers();
+    try {
+      await createTeamMember({ name, role });
+      document.getElementById("new-name").value = "";
+      showToast("Pessoa adicionada!");
+      loadMembers();
+    } catch (err) {
+      showToast("Erro ao adicionar: " + (err.message || err));
+    }
   };
 
   loadMembers();
@@ -145,7 +149,13 @@ async function loadMembers() {
   const list = document.getElementById("members-list");
   list.innerHTML = `<p class="muted">Carregando...</p>`;
 
-  const members = await fetchTeamMembers();
+  let members;
+  try {
+    members = await fetchTeamMembers();
+  } catch (err) {
+    list.innerHTML = `<div class="empty-state">Não foi possível conectar ao Supabase.<br><span class="muted">${err.message || err}</span><br><br>Verifique <code>SUPABASE_URL</code> e <code>SUPABASE_ANON_KEY</code> em <code>assets/supabase-client.js</code> e se o script de <code>schema.sql</code> foi executado.</div>`;
+    return;
+  }
 
   if (members.length === 0) {
     list.innerHTML = `<div class="empty-state">Nenhuma pessoa cadastrada ainda.</div>`;
@@ -238,104 +248,114 @@ async function buildMemberCard(member) {
   editor.className = "routine-editor";
 
   const h4 = document.createElement("h4");
-  h4.textContent = "Rotina fixa";
+  h4.textContent = "Rotina fixa — clique num horário livre pra adicionar, ou num bloco pra remover";
   editor.appendChild(h4);
 
-  const blockList = document.createElement("div");
-  blockList.id = `routine-${member.id}`;
-  editor.appendChild(blockList);
+  const legend = document.createElement("div");
+  legend.className = "legend";
+  legend.style.marginBottom = "12px";
+  renderLegend(legend);
+  editor.appendChild(legend);
 
-  const form = document.createElement("div");
-  form.className = "routine-form";
-  form.innerHTML = `
-    <div class="field-row">
-      <div class="field">
-        <label>Dia</label>
-        <select class="rb-day">
-          ${[1,2,3,4,5,6].map(d => `<option value="${d}">${DAY_LABELS[d]}</option>`).join("")}
-        </select>
-      </div>
-      <div class="field">
-        <label>Início</label>
-        <input type="time" class="rb-start" value="08:00" />
-      </div>
-      <div class="field">
-        <label>Fim</label>
-        <input type="time" class="rb-end" value="09:00" />
-      </div>
-    </div>
-    <div class="field-row">
-      <div class="field" style="flex:2;">
-        <label>Título</label>
-        <input type="text" class="rb-title" placeholder="Ex: Prospecção ativa" />
-      </div>
-      <div class="field">
-        <label>Tipo</label>
-        <select class="rb-type">
-          ${Object.entries(BLOCK_TYPES).map(([k,v]) => `<option value="${k}">${v}</option>`).join("")}
-        </select>
-      </div>
-    </div>
-    <button type="button" class="btn secondary full add-block-btn">+ Adicionar bloco</button>
-  `;
-  editor.appendChild(form);
-
-  form.querySelector(".add-block-btn").onclick = async () => {
-    const title = form.querySelector(".rb-title").value.trim();
-    const start = form.querySelector(".rb-start").value;
-    const end = form.querySelector(".rb-end").value;
-    if (!title) { showToast("Digite o título do bloco."); return; }
-    if (end <= start) { showToast("O horário de fim deve ser depois do início."); return; }
-
-    await createRoutineBlock({
-      team_member_id: member.id,
-      day_of_week: parseInt(form.querySelector(".rb-day").value, 10),
-      start_time: start,
-      end_time: end,
-      title,
-      block_type: form.querySelector(".rb-type").value
-    });
-
-    form.querySelector(".rb-title").value = "";
-    showToast("Bloco adicionado.");
-    refreshRoutineList(member.id, blockList);
-  };
+  const boardContainer = document.createElement("div");
+  editor.appendChild(boardContainer);
 
   card.appendChild(editor);
 
-  await refreshRoutineList(member.id, blockList);
+  await refreshMemberBoard(member, boardContainer);
 
   return card;
 }
 
-async function refreshRoutineList(memberId, container) {
-  const blocks = await fetchRoutineBlocks(memberId);
-
-  if (blocks.length === 0) {
-    container.innerHTML = `<p class="muted" style="font-size:13px;">Nenhum bloco definido ainda.</p>`;
-    return;
-  }
+async function refreshMemberBoard(member, container) {
+  const blocks = await fetchRoutineBlocks(member.id);
+  const todayDay = new Date().getDay();
 
   container.innerHTML = "";
-  blocks.forEach(b => {
-    const row = document.createElement("div");
-    row.className = "routine-row";
-    row.innerHTML = `
-      <span><strong>${DAY_LABELS_SHORT[b.day_of_week] || DAY_LABELS[b.day_of_week]}</strong> ·
-        ${b.start_time.slice(0,5)}–${b.end_time.slice(0,5)} ·
-        ${b.title} <span class="meta">(${BLOCK_TYPES[b.block_type] || b.block_type})</span>
-      </span>
-    `;
-    const delBtn = document.createElement("button");
-    delBtn.className = "btn danger";
-    delBtn.textContent = "Remover";
-    delBtn.onclick = async () => {
-      await deleteRoutineBlock(b.id);
-      refreshRoutineList(memberId, container);
-    };
-    row.appendChild(delBtn);
-    container.appendChild(row);
-  });
+  container.appendChild(renderBoard(buildRecurringColumns(groupBlocksByDay(blocks), todayDay), {
+    interactive: true,
+    onSlotClick: (dayKey, startMinutes, x, y) => {
+      openAddBlockPopup(member, dayKey, startMinutes, x, y, () => refreshMemberBoard(member, container));
+    },
+    onBlockClick: (blockId, kind, x, y) => {
+      openDeleteBlockPopup(blockId, x, y, () => refreshMemberBoard(member, container));
+    }
+  }));
+}
+
+/* ---------- Popup: novo bloco da rotina ---------- */
+function openAddBlockPopup(member, dayKey, startMinutes, x, y, onDone) {
+  const startTime = minutesToTime(startMinutes);
+  const defaultDuration = Math.min(60, BOARD_END_HOUR * 60 - startMinutes) || 30;
+
+  const popup = showPopup(x, y, `
+    <h4>Novo bloco</h4>
+    <div class="popup-meta">${DAY_LABELS[parseInt(dayKey, 10)]} · começa às ${startTime}</div>
+    <div class="field">
+      <label>Título</label>
+      <input type="text" id="popup-title" placeholder="Ex: Prospecção ativa" />
+    </div>
+    <div class="field">
+      <label>Duração</label>
+      <select id="popup-duration">${durationOptionsHtml(defaultDuration)}</select>
+    </div>
+    <div class="field">
+      <label>Tipo</label>
+      <select id="popup-type">
+        ${Object.entries(BLOCK_TYPES).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}
+      </select>
+    </div>
+    <div class="popup-actions">
+      <button type="button" class="btn secondary" id="popup-cancel">Cancelar</button>
+      <button type="button" class="btn" id="popup-save">Adicionar</button>
+    </div>
+  `);
+
+  popup.querySelector("#popup-cancel").onclick = closePopup;
+
+  popup.querySelector("#popup-save").onclick = async () => {
+    const title = popup.querySelector("#popup-title").value.trim();
+    if (!title) { showToast("Digite o título do bloco."); return; }
+
+    const duration = parseInt(popup.querySelector("#popup-duration").value, 10);
+    const endMinutes = Math.min(startMinutes + duration, BOARD_END_HOUR * 60 + 60);
+
+    try {
+      await createRoutineBlock({
+        team_member_id: member.id,
+        day_of_week: parseInt(dayKey, 10),
+        start_time: startTime,
+        end_time: minutesToTime(endMinutes),
+        title,
+        block_type: popup.querySelector("#popup-type").value
+      });
+      closePopup();
+      showToast("Bloco adicionado.");
+      onDone();
+    } catch (err) {
+      showToast("Erro: " + (err.message || err));
+    }
+  };
+}
+
+/* ---------- Popup: remover bloco da rotina ---------- */
+function openDeleteBlockPopup(blockId, x, y, onDone) {
+  const popup = showPopup(x, y, `
+    <h4>Remover bloco</h4>
+    <p class="muted" style="font-size:13px; margin:0;">Remover este bloco da rotina fixa?</p>
+    <div class="popup-actions">
+      <button type="button" class="btn secondary" id="popup-cancel">Cancelar</button>
+      <button type="button" class="btn danger" id="popup-delete">Remover</button>
+    </div>
+  `);
+
+  popup.querySelector("#popup-cancel").onclick = closePopup;
+  popup.querySelector("#popup-delete").onclick = async () => {
+    await deleteRoutineBlock(blockId);
+    closePopup();
+    showToast("Bloco removido.");
+    onDone();
+  };
 }
 
 checkGate();
