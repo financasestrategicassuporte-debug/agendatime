@@ -7,421 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
-<style>
-  :root{
-    --bg:#0a0c0a;
-    --surface:#14181480;
-    --surface-solid:#15191500;
-    --line:#262b25;
-    --green:#61b42d;
-    --green-deep:#0e7d3a;
-    --yellow:#f2c811;
-    --text:#f4f6f1;
-    --text-muted:#8c968f;
-
-    --type-prospeccao:#61b42d;
-    --type-ligacoes:#f2c811;
-    --type-followup:#0e7d3a;
-    --type-conteudo:#a9d979;
-    --type-reuniao:#4d564f;
-
-    --board-hour-px:50px;
-
-    --font-display:'Anton', sans-serif;
-    --font-body:'Inter', sans-serif;
-    --font-mono:'JetBrains Mono', monospace;
-  }
-
-  *{ box-sizing:border-box; }
-
-  html,body{
-    margin:0;
-    padding:0;
-    background:var(--bg);
-    color:var(--text);
-    font-family:var(--font-body);
-    -webkit-font-smoothing:antialiased;
-  }
-
-  body{
-    background-image:
-      radial-gradient(circle at 15% 0%, rgba(97,180,45,0.08), transparent 40%),
-      radial-gradient(circle at 90% 10%, rgba(242,200,17,0.06), transparent 35%);
-    background-attachment:fixed;
-  }
-
-  .wrap{
-    max-width:1180px;
-    margin:0 auto;
-    padding:48px 24px 80px;
-  }
-
-  /* ---------- Header ---------- */
-  header.top{
-    display:flex;
-    flex-direction:column;
-    gap:18px;
-    padding-bottom:36px;
-    border-bottom:1px solid var(--line);
-    margin-bottom:40px;
-  }
-
-  .brand-row{
-    display:flex;
-    align-items:center;
-    gap:12px;
-  }
-
-  .brand-mark{
-    width:30px;
-    height:30px;
-    border-radius:7px;
-    background:linear-gradient(135deg, var(--green) 50%, var(--yellow) 50%);
-    flex-shrink:0;
-  }
-
-  .brand-name{
-    font-family:var(--font-mono);
-    font-weight:700;
-    letter-spacing:0.3em;
-    font-size:13px;
-    color:var(--text-muted);
-    text-transform:uppercase;
-  }
-
-  h1.title{
-    font-family:var(--font-display);
-    font-weight:400;
-    font-size:clamp(40px, 8vw, 76px);
-    line-height:0.98;
-    letter-spacing:0.01em;
-    margin:0;
-    text-transform:uppercase;
-  }
-
-  h1.title .accent{ color:var(--green); }
-
-  .top-meta{
-    display:flex;
-    flex-wrap:wrap;
-    align-items:center;
-    justify-content:space-between;
-    gap:16px;
-  }
-
-  .top-meta p{
-    margin:0;
-    color:var(--text-muted);
-    font-size:15px;
-    max-width:520px;
-  }
-
-  #now-display{
-    font-family:var(--font-mono);
-    font-size:13px;
-    color:var(--green);
-    border:1px solid var(--line);
-    border-radius:999px;
-    padding:8px 16px;
-    white-space:nowrap;
-    text-transform:capitalize;
-  }
-
-  /* ---------- Legend ---------- */
-  .legend{
-    display:flex;
-    flex-wrap:wrap;
-    gap:10px 22px;
-    margin-bottom:48px;
-  }
-
-  .legend-item{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    font-size:13px;
-    color:var(--text-muted);
-  }
-
-  .legend-swatch{
-    width:13px;
-    height:13px;
-    border-radius:3px;
-    flex-shrink:0;
-  }
-
-  .legend-swatch.pausa{
-    background:transparent;
-    border:1px dashed var(--text-muted);
-  }
-
-  /* ---------- Role sections ---------- */
-  section.role-section{
-    margin-bottom:56px;
-  }
-
-  .role-head{
-    display:flex;
-    align-items:baseline;
-    gap:16px;
-    margin-bottom:22px;
-  }
-
-  .role-head h2{
-    font-family:var(--font-display);
-    font-weight:400;
-    font-size:clamp(26px, 4vw, 38px);
-    text-transform:uppercase;
-    letter-spacing:0.04em;
-    margin:0;
-  }
-
-  .role-head .role-line{
-    flex:1;
-    height:1px;
-    background:var(--line);
-  }
-
-  .role-head .role-count{
-    font-family:var(--font-mono);
-    font-size:12px;
-    color:var(--text-muted);
-    white-space:nowrap;
-  }
-
-  /* ---------- Member card ---------- */
-  .member-card{
-    border:1px solid var(--line);
-    border-radius:16px;
-    padding:24px;
-    margin-bottom:20px;
-    background:linear-gradient(180deg, rgba(255,255,255,0.015), transparent);
-  }
-
-  .member-head{
-    display:flex;
-    flex-wrap:wrap;
-    align-items:center;
-    justify-content:space-between;
-    gap:16px;
-    margin-bottom:22px;
-  }
-
-  .member-id{
-    display:flex;
-    align-items:center;
-    gap:14px;
-  }
-
-  .avatar{
-    width:50px;
-    height:50px;
-    border-radius:50%;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-family:var(--font-display);
-    font-size:18px;
-    color:#0a0c0a;
-    background:linear-gradient(135deg, var(--green), var(--yellow));
-    flex-shrink:0;
-  }
-
-  .member-id h3{
-    font-family:var(--font-display);
-    font-weight:400;
-    font-size:24px;
-    text-transform:uppercase;
-    margin:0 0 4px;
-    letter-spacing:0.02em;
-  }
-
-  .role-tag{
-    display:inline-block;
-    font-family:var(--font-mono);
-    font-size:11px;
-    letter-spacing:0.12em;
-    text-transform:uppercase;
-    padding:3px 10px;
-    border-radius:999px;
-    border:1px solid var(--line);
-    color:var(--text-muted);
-  }
-
-  .role-tag.sdr{ color:var(--green); border-color:rgba(97,180,45,0.4); }
-  .role-tag.closer{ color:var(--yellow); border-color:rgba(242,200,17,0.4); }
-  .role-tag.social_selling{ color:var(--type-conteudo); border-color:rgba(169,217,121,0.4); }
-
-  .link-btn{
-    font-family:var(--font-mono);
-    font-size:12px;
-    text-decoration:none;
-    color:#0a0c0a;
-    background:var(--green);
-    padding:10px 18px;
-    border-radius:999px;
-    font-weight:700;
-    letter-spacing:0.04em;
-    white-space:nowrap;
-    transition:opacity 0.15s ease;
-  }
-
-  .link-btn:hover{ opacity:0.85; }
-
-  .link-btn--disabled{
-    background:transparent;
-    border:1px dashed var(--line);
-    color:var(--text-muted);
-    cursor:default;
-  }
-
-  /* ---------- Weekly board ---------- */
-  .board-wrapper{
-    overflow-x:auto;
-    border:1px solid var(--line);
-    border-radius:12px;
-  }
-
-  .board-grid{
-    display:grid;
-    grid-template-columns:56px repeat(6, minmax(118px, 1fr));
-    min-width:780px;
-  }
-
-  .board-header-cell{
-    font-family:var(--font-mono);
-    font-size:12px;
-    letter-spacing:0.12em;
-    color:var(--text-muted);
-    text-align:center;
-    padding:12px 4px;
-    border-bottom:1px solid var(--line);
-    border-left:1px solid var(--line);
-  }
-
-  .board-header-cell.corner{ border-left:none; }
-
-  .board-header-cell.today{
-    color:var(--green);
-    background:rgba(97,180,45,0.06);
-  }
-
-  .time-axis{
-    position:relative;
-    border-left:none;
-  }
-
-  .time-axis span{
-    position:absolute;
-    left:0;
-    right:6px;
-    transform:translateY(-50%);
-    font-family:var(--font-mono);
-    font-size:10px;
-    color:var(--text-muted);
-    text-align:right;
-  }
-
-  .day-col{
-    position:relative;
-    border-left:1px solid var(--line);
-    background-image:repeating-linear-gradient(
-      to bottom,
-      transparent,
-      transparent calc(var(--board-hour-px) - 1px),
-      var(--line) var(--board-hour-px)
-    );
-  }
-
-  .day-col.today{
-    background-color:rgba(97,180,45,0.04);
-  }
-
-  .block{
-    position:absolute;
-    left:4px;
-    right:4px;
-    border-radius:6px;
-    padding:5px 7px;
-    font-size:11.5px;
-    line-height:1.35;
-    overflow:hidden;
-  }
-
-  .block .block-time{
-    display:block;
-    font-family:var(--font-mono);
-    font-size:10px;
-    font-weight:700;
-    margin-bottom:2px;
-    opacity:0.85;
-  }
-
-  .block.type-prospeccao{ background:var(--type-prospeccao); color:#0a0c0a; }
-  .block.type-ligacoes{ background:var(--type-ligacoes); color:#0a0c0a; }
-  .block.type-followup{ background:var(--type-followup); color:var(--text); }
-  .block.type-conteudo{ background:var(--type-conteudo); color:#0a0c0a; }
-  .block.type-reuniao{ background:var(--type-reuniao); color:var(--text); }
-  .block.type-pausa{
-    background:transparent;
-    border:1px dashed var(--line);
-    color:var(--text-muted);
-    font-style:italic;
-  }
-
-  .day-off{
-    position:absolute;
-    inset:0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-family:var(--font-mono);
-    font-size:11px;
-    letter-spacing:0.1em;
-    color:var(--text-muted);
-    text-transform:uppercase;
-  }
-
-  .now-line{
-    position:absolute;
-    left:0;
-    right:0;
-    height:0;
-    border-top:2px solid var(--yellow);
-    z-index:3;
-  }
-
-  .now-line::before{
-    content:'';
-    position:absolute;
-    left:-4px;
-    top:-4px;
-    width:8px;
-    height:8px;
-    border-radius:50%;
-    background:var(--yellow);
-  }
-
-  /* ---------- Footer ---------- */
-  footer{
-    margin-top:60px;
-    padding-top:24px;
-    border-top:1px solid var(--line);
-    font-size:12px;
-    color:var(--text-muted);
-    font-family:var(--font-mono);
-    display:flex;
-    flex-wrap:wrap;
-    justify-content:space-between;
-    gap:8px;
-  }
-
-  @media (max-width:640px){
-    .wrap{ padding:32px 16px 60px; }
-    .member-card{ padding:18px; }
-    .top-meta{ flex-direction:column; align-items:flex-start; }
-  }
-</style>
+<link rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
 
@@ -431,318 +17,71 @@
     <div class="brand-row">
       <span class="brand-mark"></span>
       <span class="brand-name">Gestão Fitness Brasil</span>
+      <a class="brand-link" href="admin.html">Admin</a>
     </div>
     <h1 class="title">Rotinas da <span class="accent">Equipe</span></h1>
     <div class="top-meta">
-      <p>Visão semanal das rotinas de SDR, Closer e Social Selling. Cada bloco representa uma atividade da rotina diária do time.</p>
+      <p>Visão semanal das rotinas de SDR, Closer e Customer Success. Clique em "Ver agenda" para abrir a agenda individual de cada pessoa.</p>
       <span id="now-display"></span>
     </div>
   </header>
 
   <div class="legend" id="legend"></div>
 
-  <main id="content"></main>
+  <main id="content">
+    <p class="muted">Carregando...</p>
+  </main>
 
   <footer>
     <span>Gestão Fitness Brasil — rotinas internas</span>
-    <span>Atualizado automaticamente conforme o arquivo de dados</span>
+    <span>Painel administrativo: <a href="admin.html">/admin.html</a></span>
   </footer>
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/supabase-client.js"></script>
+<script src="assets/board.js"></script>
 <script>
-/* =========================================================================
-   DADOS DA EQUIPE
-   -------------------------------------------------------------------------
-   Para adicionar/editar uma pessoa, copie um objeto inteiro do array TEAM
-   e ajuste os campos:
-
-   - name   : nome exibido
-   - role   : "sdr" | "closer" | "social_selling"
-   - initials: iniciais usadas no avatar (2 letras)
-   - link   : URL do link de agendamento da pessoa.
-              Deixe "#" se ainda não tiver o link (o botão fica desativado
-              mostrando "Link em breve").
-
-   - schedule: objeto com a rotina por dia da semana.
-              Chaves: 1=Segunda, 2=Terça, 3=Quarta, 4=Quinta, 5=Sexta, 6=Sábado
-              Cada dia é uma lista de blocos:
-                { start: "HH:MM", end: "HH:MM", title: "...", type: "..." }
-
-              Tipos disponíveis (ver legenda):
-                prospeccao | ligacoes | followup | conteudo | reuniao | pausa
-
-              Use um array vazio [] para indicar dia de folga.
-              Horários devem ficar entre 07:00 e 19:00 (faixa do quadro).
-   ========================================================================= */
-
-const TEAM = [
-  {
-    name: "Marcelo",
-    role: "sdr",
-    initials: "MA",
-    link: "#",
-    schedule: weekdaySchedule([
-      { start: "08:00", end: "10:00", title: "Prospecção ativa (cold call + WhatsApp)", type: "prospeccao" },
-      { start: "10:00", end: "12:00", title: "Ligações de qualificação (BANT)", type: "ligacoes" },
-      { start: "12:00", end: "13:00", title: "Almoço", type: "pausa" },
-      { start: "13:00", end: "18:00", title: "Follow-up de leads frios", type: "followup" }
-    ], { 6: [] }) // sábado: folga
-  },
-  {
-    name: "Eduardo Lustosa",
-    role: "closer",
-    initials: "EL",
-    link: "#",
-    schedule: weekdaySchedule([
-      { start: "09:00", end: "09:30", title: "Alinhamento diário com o time", type: "reuniao" },
-      { start: "09:30", end: "12:00", title: "Calls de diagnóstico e fechamento", type: "ligacoes" },
-      { start: "12:00", end: "13:00", title: "Almoço", type: "pausa" },
-      { start: "13:00", end: "17:00", title: "Apresentações e fechamentos", type: "ligacoes" },
-      { start: "17:00", end: "18:00", title: "Follow-up de propostas em aberto", type: "followup" }
-    ], {
-      6: [
-        { start: "09:00", end: "12:00", title: "Fechamentos agendados", type: "ligacoes" }
-      ]
-    })
-  },
-  {
-    name: "Maicon Mares",
-    role: "social_selling",
-    initials: "MM",
-    link: "#",
-    schedule: weekdaySchedule([
-      { start: "08:00", end: "10:00", title: "Criação de conteúdo (reels e carrosséis)", type: "conteudo" },
-      { start: "10:00", end: "12:00", title: "Prospecção em redes sociais (DMs e comentários)", type: "prospeccao" },
-      { start: "12:00", end: "13:00", title: "Almoço", type: "pausa" },
-      { start: "13:00", end: "15:00", title: "Atendimento a leads quentes (DM/WhatsApp)", type: "ligacoes" },
-      { start: "15:00", end: "17:00", title: "Planejamento e gravação de conteúdo", type: "conteudo" },
-      { start: "17:00", end: "18:00", title: "Follow-up de conversas em aberto", type: "followup" }
-    ], {
-      6: [
-        { start: "09:00", end: "11:00", title: "Conteúdo de fim de semana + engajamento", type: "conteudo" }
-      ]
-    })
-  }
-];
-
-/* Helper: aplica a mesma rotina de Seg–Sex e permite sobrescrever dias específicos (ex: sábado) */
-function weekdaySchedule(weekdayBlocks, overrides) {
-  const schedule = {};
-  for (let day = 1; day <= 6; day++) {
-    schedule[day] = (overrides && overrides[day] !== undefined) ? overrides[day] : weekdayBlocks;
-  }
-  return schedule;
-}
-
-/* =========================================================================
-   CONFIGURAÇÃO DO QUADRO
-   ========================================================================= */
-const BOARD_START_HOUR = 7;   // 07:00
-const BOARD_END_HOUR = 19;    // 19:00
-const HOUR_PX = 50;
-const BOARD_HEIGHT = (BOARD_END_HOUR - BOARD_START_HOUR) * HOUR_PX;
-
-const DAY_LABELS = { 1: "SEG", 2: "TER", 3: "QUA", 4: "QUI", 5: "SEX", 6: "SÁB" };
-const DAY_ORDER = [1, 2, 3, 4, 5, 6];
-
-const ROLES = [
-  { key: "sdr", label: "SDR" },
-  { key: "closer", label: "Closer" },
-  { key: "social_selling", label: "Social Selling" }
-];
-
-const TYPE_LABELS = {
-  prospeccao: "Prospecção",
-  ligacoes: "Ligações / Atendimento",
-  followup: "Follow-up",
-  conteudo: "Conteúdo",
-  reuniao: "Reunião interna",
-  pausa: "Pausa"
-};
-
-/* =========================================================================
-   HELPERS
-   ========================================================================= */
-function timeToMinutes(t) {
-  const [h, m] = t.split(":").map(Number);
-  return h * 60 + m;
-}
-
-function topPx(start) {
-  return ((timeToMinutes(start) - BOARD_START_HOUR * 60) / 60) * HOUR_PX;
-}
-
-function heightPx(start, end) {
-  return ((timeToMinutes(end) - timeToMinutes(start)) / 60) * HOUR_PX;
-}
-
-/* =========================================================================
-   RENDER: LEGENDA
-   ========================================================================= */
-function renderLegend() {
-  const legend = document.getElementById("legend");
-  Object.entries(TYPE_LABELS).forEach(([type, label]) => {
-    const item = document.createElement("span");
-    item.className = "legend-item";
-
-    const swatch = document.createElement("span");
-    swatch.className = "legend-swatch" + (type === "pausa" ? " pausa" : "");
-    if (type !== "pausa") {
-      swatch.style.background = `var(--type-${type})`;
-    }
-
-    item.appendChild(swatch);
-    item.appendChild(document.createTextNode(label));
-    legend.appendChild(item);
-  });
-}
-
-/* =========================================================================
-   RENDER: QUADRO SEMANAL DE UM MEMBRO
-   ========================================================================= */
-function renderBoard(member, todayDay) {
-  const wrapper = document.createElement("div");
-  wrapper.className = "board-wrapper";
-
-  const grid = document.createElement("div");
-  grid.className = "board-grid";
-
-  // Cabeçalho (linha de dias)
-  const corner = document.createElement("div");
-  corner.className = "board-header-cell corner";
-  grid.appendChild(corner);
-
-  DAY_ORDER.forEach(day => {
-    const cell = document.createElement("div");
-    cell.className = "board-header-cell" + (day === todayDay ? " today" : "");
-    cell.textContent = DAY_LABELS[day];
-    grid.appendChild(cell);
-  });
-
-  // Eixo de horários
-  const axis = document.createElement("div");
-  axis.className = "time-axis";
-  axis.style.height = BOARD_HEIGHT + "px";
-  for (let h = BOARD_START_HOUR; h <= BOARD_END_HOUR; h++) {
-    const label = document.createElement("span");
-    label.style.top = (h - BOARD_START_HOUR) * HOUR_PX + "px";
-    label.textContent = String(h).padStart(2, "0") + ":00";
-    axis.appendChild(label);
-  }
-  grid.appendChild(axis);
-
-  // Colunas dos dias
+function updateNowDisplay() {
   const now = new Date();
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
-
-  DAY_ORDER.forEach(day => {
-    const col = document.createElement("div");
-    col.className = "day-col" + (day === todayDay ? " today" : "");
-    col.style.height = BOARD_HEIGHT + "px";
-
-    const blocks = member.schedule[day] || [];
-
-    if (blocks.length === 0) {
-      const off = document.createElement("div");
-      off.className = "day-off";
-      off.textContent = "Folga";
-      col.appendChild(off);
-    } else {
-      blocks.forEach(block => {
-        const el = document.createElement("div");
-        el.className = "block type-" + block.type;
-        el.style.top = topPx(block.start) + "px";
-        el.style.height = heightPx(block.start, block.end) + "px";
-
-        const time = document.createElement("span");
-        time.className = "block-time";
-        time.textContent = block.start + "–" + block.end;
-
-        el.appendChild(time);
-        el.appendChild(document.createTextNode(block.title));
-        col.appendChild(el);
-      });
-    }
-
-    // Linha do "agora"
-    if (day === todayDay && nowMinutes >= BOARD_START_HOUR * 60 && nowMinutes <= BOARD_END_HOUR * 60) {
-      const nowLine = document.createElement("div");
-      nowLine.className = "now-line";
-      nowLine.style.top = ((nowMinutes - BOARD_START_HOUR * 60) / 60) * HOUR_PX + "px";
-      col.appendChild(nowLine);
-    }
-
-    grid.appendChild(col);
-  });
-
-  wrapper.appendChild(grid);
-  return wrapper;
+  const formatted = new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "numeric", month: "long" }).format(now);
+  const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  document.getElementById("now-display").textContent = formatted + " · " + time;
 }
 
-/* =========================================================================
-   RENDER: CARD DE UM MEMBRO
-   ========================================================================= */
-function renderMemberCard(member, todayDay) {
-  const card = document.createElement("article");
-  card.className = "member-card";
+function memberFirstName(name) {
+  return name.split(" ")[0];
+}
 
-  const head = document.createElement("div");
-  head.className = "member-head";
+async function init() {
+  renderLegend(document.getElementById("legend"));
+  updateNowDisplay();
+  setInterval(updateNowDisplay, 60000);
 
-  const idBox = document.createElement("div");
-  idBox.className = "member-id";
+  const content = document.getElementById("content");
 
-  const avatar = document.createElement("div");
-  avatar.className = "avatar";
-  avatar.textContent = member.initials;
-
-  const nameBox = document.createElement("div");
-
-  const name = document.createElement("h3");
-  name.textContent = member.name;
-
-  const roleTag = document.createElement("span");
-  roleTag.className = "role-tag " + member.role;
-  roleTag.textContent = ROLES.find(r => r.key === member.role).label;
-
-  nameBox.appendChild(name);
-  nameBox.appendChild(roleTag);
-
-  idBox.appendChild(avatar);
-  idBox.appendChild(nameBox);
-
-  const linkEl = document.createElement(member.link && member.link !== "#" ? "a" : "span");
-  if (member.link && member.link !== "#") {
-    linkEl.href = member.link;
-    linkEl.target = "_blank";
-    linkEl.rel = "noopener";
-    linkEl.className = "link-btn";
-    linkEl.textContent = "Agendar com " + member.name.split(" ")[0] + " ↗";
-  } else {
-    linkEl.className = "link-btn link-btn--disabled";
-    linkEl.textContent = "Link em breve";
+  let members, blocks;
+  try {
+    [members, blocks] = await Promise.all([fetchTeamMembers(), fetchAllRoutineBlocks()]);
+  } catch (err) {
+    content.innerHTML = `<div class="empty-state">Não foi possível carregar os dados. Verifique a configuração do Supabase em <code>assets/supabase-client.js</code>.<br><span class="muted">${err.message || err}</span></div>`;
+    return;
   }
 
-  head.appendChild(idBox);
-  head.appendChild(linkEl);
+  content.innerHTML = "";
 
-  card.appendChild(head);
-  card.appendChild(renderBoard(member, todayDay));
+  const blocksByMember = {};
+  blocks.forEach(b => {
+    if (!blocksByMember[b.team_member_id]) blocksByMember[b.team_member_id] = [];
+    blocksByMember[b.team_member_id].push(b);
+  });
 
-  return card;
-}
-
-/* =========================================================================
-   RENDER: SEÇÕES POR FUNÇÃO
-   ========================================================================= */
-function renderContent() {
-  const content = document.getElementById("content");
-  const todayDay = new Date().getDay(); // 0=Dom ... 6=Sáb
+  const todayDay = new Date().getDay();
 
   ROLES.forEach(role => {
-    const members = TEAM.filter(m => m.role === role.key);
-    if (members.length === 0) return;
+    const roleMembers = members.filter(m => m.role === role.key);
+    if (roleMembers.length === 0) return;
 
     const section = document.createElement("section");
     section.className = "role-section";
@@ -758,44 +97,64 @@ function renderContent() {
 
     const count = document.createElement("span");
     count.className = "role-count";
-    count.textContent = members.length + (members.length === 1 ? " pessoa" : " pessoas");
+    count.textContent = roleMembers.length + (roleMembers.length === 1 ? " pessoa" : " pessoas");
 
     headRow.appendChild(h2);
     headRow.appendChild(line);
     headRow.appendChild(count);
     section.appendChild(headRow);
 
-    members.forEach(member => {
-      section.appendChild(renderMemberCard(member, todayDay));
+    roleMembers.forEach(member => {
+      const card = document.createElement("article");
+      card.className = "member-card";
+
+      const head = document.createElement("div");
+      head.className = "member-head";
+
+      const idBox = document.createElement("div");
+      idBox.className = "member-id";
+
+      const avatar = document.createElement("div");
+      avatar.className = "avatar";
+      avatar.textContent = member.initials;
+
+      const nameBox = document.createElement("div");
+      const name = document.createElement("h3");
+      name.textContent = member.name;
+
+      const roleTag = document.createElement("span");
+      roleTag.className = "role-tag " + member.role;
+      roleTag.textContent = ROLE_LABELS[member.role];
+
+      nameBox.appendChild(name);
+      nameBox.appendChild(roleTag);
+
+      idBox.appendChild(avatar);
+      idBox.appendChild(nameBox);
+
+      const link = document.createElement("a");
+      link.className = "btn";
+      link.href = `agenda.html?p=${member.slug}`;
+      link.textContent = "Ver agenda de " + memberFirstName(member.name) + " ↗";
+
+      head.appendChild(idBox);
+      head.appendChild(link);
+
+      card.appendChild(head);
+      card.appendChild(renderBoard(groupBlocksByDay(blocksByMember[member.id] || []), todayDay));
+
+      section.appendChild(card);
     });
 
     content.appendChild(section);
   });
+
+  if (members.length === 0) {
+    content.innerHTML = `<div class="empty-state">Nenhuma pessoa cadastrada ainda. Acesse o <a href="admin.html">painel administrativo</a> para adicionar o time.</div>`;
+  }
 }
 
-/* =========================================================================
-   RELÓGIO / DATA NO CABEÇALHO
-   ========================================================================= */
-function updateNowDisplay() {
-  const now = new Date();
-  const formatted = new Intl.DateTimeFormat("pt-BR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long"
-  }).format(now);
-
-  const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-
-  document.getElementById("now-display").textContent = formatted + " · " + time;
-}
-
-/* =========================================================================
-   INIT
-   ========================================================================= */
-renderLegend();
-renderContent();
-updateNowDisplay();
-setInterval(updateNowDisplay, 60000);
+init();
 </script>
 
 </body>
