@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Minha Agenda · Gestão Fitness Brasil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand-row">
+      <span class="brand-mark"></span>
+      <span class="brand-name">Gestão Fitness Brasil</span>
+      <a class="brand-link" href="index.html">← Rotinas da equipe</a>
+    </div>
+  </header>
+
+  <main id="content">
+    <p class="muted">Carregando...</p>
+  </main>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/supabase-client.js"></script>
+<script src="assets/board.js"></script>
+<script>
+let CURRENT_MEMBER = null;
+let ALL_MEMBERS = [];
+
+function showToast(msg) {
+  const toast = document.getElementById("toast");
+  toast.textContent = msg;
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 2200);
+}
+
+function formatEventDate(isoDate) {
+  const d = new Date(isoDate + "T00:00:00");
+  const weekday = new Intl.DateTimeFormat("pt-BR", { weekday: "short" }).format(d).replace(".", "").toUpperCase();
+  return `${weekday} · ${formatDateBR(isoDate)}`;
+}
+
+async function init() {
+  const slug = new URLSearchParams(location.search).get("p");
+  const content = document.getElementById("content");
+
+  if (!slug) {
+    content.innerHTML = `<div class="empty-state">Nenhuma pessoa informada na URL. Use um link no formato <code>agenda.html?p=slug-da-pessoa</code>.<br><br><a class="btn secondary" href="index.html">Voltar para Rotinas</a></div>`;
+    return;
+  }
+
+  try {
+    CURRENT_MEMBER = await fetchTeamMemberBySlug(slug);
+  } catch (err) {
+    content.innerHTML = `<div class="empty-state">Erro ao carregar dados. Verifique a configuração do Supabase em <code>assets/supabase-client.js</code>.<br><span class="muted">${err.message || err}</span></div>`;
+    return;
+  }
+
+  if (!CURRENT_MEMBER) {
+    content.innerHTML = `<div class="empty-state">Pessoa não encontrada para o link "${slug}".<br><br><a class="btn secondary" href="index.html">Voltar para Rotinas</a></div>`;
+    return;
+  }
+
+  document.title = CURRENT_MEMBER.name + " · Agenda · GFB";
+
+  ALL_MEMBERS = await fetchTeamMembers();
+
+  renderHeader();
+  await renderRoutine();
+  await renderEvents();
+  renderEventForm();
+}
+
+/* ---------- Cabeçalho da pessoa ---------- */
+function renderHeader() {
+  const content = document.getElementById("content");
+
+  const header = document.createElement("div");
+  header.className = "member-head";
+  header.style.marginBottom = "32px";
+
+  const idBox = document.createElement("div");
+  idBox.className = "member-id";
+
+  const avatar = document.createElement("div");
+  avatar.className = "avatar";
+  avatar.style.width = "60px";
+  avatar.style.height = "60px";
+  avatar.style.fontSize = "22px";
+  avatar.textContent = CURRENT_MEMBER.initials;
+
+  const nameBox = document.createElement("div");
+  const h1 = document.createElement("h1");
+  h1.textContent = CURRENT_MEMBER.name;
+
+  const roleTag = document.createElement("span");
+  roleTag.className = "role-tag " + CURRENT_MEMBER.role;
+  roleTag.textContent = ROLE_LABELS[CURRENT_MEMBER.role];
+
+  nameBox.appendChild(h1);
+  nameBox.appendChild(roleTag);
+
+  idBox.appendChild(avatar);
+  idBox.appendChild(nameBox);
+
+  const copyBtn = document.createElement("button");
+  copyBtn.className = "btn secondary";
+  copyBtn.textContent = "Copiar link desta agenda";
+  copyBtn.onclick = () => {
+    navigator.clipboard.writeText(location.href);
+    showToast("Link copiado!");
+  };
+
+  header.appendChild(idBox);
+  header.appendChild(copyBtn);
+  content.appendChild(header);
+}
+
+/* ---------- Rotina fixa ---------- */
+async function renderRoutine() {
+  const content = document.getElementById("content");
+
+  const title = document.createElement("h2");
+  title.className = "section-title";
+  title.textContent = "Rotina fixa";
+  content.appendChild(title);
+
+  const legend = document.createElement("div");
+  legend.className = "legend";
+  renderLegend(legend);
+  content.appendChild(legend);
+
+  const blocks = await fetchRoutineBlocks(CURRENT_MEMBER.id);
+  const todayDay = new Date().getDay();
+  content.appendChild(renderBoard(groupBlocksByDay(blocks), todayDay));
+
+  const note = document.createElement("p");
+  note.className = "muted";
+  note.style.fontSize = "12px";
+  note.style.marginTop = "10px";
+  note.textContent = "A rotina fixa é definida pelo painel administrativo.";
+  content.appendChild(note);
+}
+
+/* ---------- Lista de eventos / convites ---------- */
+async function renderEvents() {
+  const content = document.getElementById("content");
+
+  const title = document.createElement("h2");
+  title.className = "section-title";
+  title.style.marginTop = "48px";
+  title.textContent = "Próximos eventos";
+  content.appendChild(title);
+
+  const list = document.createElement("div");
+  list.id = "events-list";
+  content.appendChild(list);
+
+  await refreshEvents();
+}
+
+async function refreshEvents() {
+  const list = document.getElementById("events-list");
+  list.innerHTML = `<p class="muted">Carregando eventos...</p>`;
+
+  const events = await fetchEventsForMember(CURRENT_MEMBER.id);
+  list.innerHTML = "";
+
+  if (events.length === 0) {
+    list.innerHTML = `<div class="empty-state">Nenhum evento agendado ainda. Crie um evento abaixo ou aguarde convites do time.</div>`;
+    return;
+  }
+
+  events.forEach(ev => {
+    const card = document.createElement("div");
+    card.className = "event-card";
+
+    const main = document.createElement("div");
+
+    const date = document.createElement("div");
+    date.className = "event-date";
+    date.textContent = `${formatEventDate(ev.event_date)} · ${ev.start_time.slice(0,5)}–${ev.end_time.slice(0,5)}`;
+
+    const h4 = document.createElement("h4");
+    h4.textContent = ev.title;
+
+    main.appendChild(date);
+    main.appendChild(h4);
+
+    if (ev.description) {
+      const desc = document.createElement("p");
+      desc.textContent = ev.description;
+      main.appendChild(desc);
+    }
+
+    const isOwner = ev.created_by === CURRENT_MEMBER.id;
+    const ownerName = ev.team_members ? ev.team_members.name : null;
+
+    const attendees = document.createElement("div");
+    attendees.className = "attendee-list";
+
+    const organizerChip = document.createElement("span");
+    organizerChip.className = "chip";
+    organizerChip.innerHTML = `<span class="avatar small">${(isOwner ? CURRENT_MEMBER.initials : (ownerName ? initialsFromName(ownerName) : "?"))}</span> Organizador: ${isOwner ? "Você" : (ownerName || "—")}`;
+    attendees.appendChild(organizerChip);
+
+    (ev.event_attendees || []).forEach(a => {
+      if (!a.team_members) return;
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      const isSelf = a.team_members.id === CURRENT_MEMBER.id;
+      chip.innerHTML = `<span class="avatar small">${a.team_members.initials}</span> ${isSelf ? "Você" : a.team_members.name}`;
+      attendees.appendChild(chip);
+    });
+
+    main.appendChild(attendees);
+    card.appendChild(main);
+
+    const side = document.createElement("div");
+    if (isOwner) {
+      const delBtn = document.createElement("button");
+      delBtn.className = "btn danger";
+      delBtn.textContent = "Excluir";
+      delBtn.onclick = async () => {
+        if (!confirm(`Excluir o evento "${ev.title}"?`)) return;
+        await deleteEvent(ev.id);
+        showToast("Evento excluído.");
+        refreshEvents();
+      };
+      side.appendChild(delBtn);
+    } else {
+      const badge = document.createElement("span");
+      badge.className = "role-tag";
+      badge.textContent = "Convidado(a)";
+      side.appendChild(badge);
+    }
+    card.appendChild(side);
+
+    list.appendChild(card);
+  });
+}
+
+/* ---------- Formulário de novo evento ---------- */
+function renderEventForm() {
+  const content = document.getElementById("content");
+
+  const title = document.createElement("h2");
+  title.className = "section-title";
+  title.style.marginTop = "48px";
+  title.textContent = "Novo evento";
+  content.appendChild(title);
+
+  const panel = document.createElement("div");
+  panel.className = "panel";
+
+  panel.innerHTML = `
+    <div class="field">
+      <label>Título</label>
+      <input type="text" id="ev-title" placeholder="Ex: Reunião de alinhamento" />
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Data</label>
+        <input type="date" id="ev-date" />
+      </div>
+      <div class="field">
+        <label>Início</label>
+        <input type="time" id="ev-start" value="09:00" />
+      </div>
+      <div class="field">
+        <label>Fim</label>
+        <input type="time" id="ev-end" value="10:00" />
+      </div>
+    </div>
+    <div class="field">
+      <label>Descrição (opcional)</label>
+      <textarea id="ev-desc" rows="2" placeholder="Detalhes, link de chamada, pauta..."></textarea>
+    </div>
+    <div class="field">
+      <label>Convidar membros do time</label>
+      <div class="checkbox-list" id="attendee-list"></div>
+    </div>
+    <div class="field">
+      <button type="button" class="btn secondary" id="toggle-new-person">+ Adicionar nova pessoa</button>
+      <div id="new-person-box" style="display:none; margin-top:12px;">
+        <div class="field-row">
+          <div class="field">
+            <label>Nome</label>
+            <input type="text" id="new-person-name" placeholder="Nome completo" />
+          </div>
+          <div class="field">
+            <label>Cargo</label>
+            <select id="new-person-role">
+              ${ROLES.map(r => `<option value="${r.key}">${r.label}</option>`).join("")}
+            </select>
+          </div>
+        </div>
+        <button type="button" class="btn secondary" id="add-person-btn">Adicionar à equipe e convidar</button>
+      </div>
+    </div>
+    <button type="button" class="btn full" id="create-event-btn" style="margin-top:8px;">Criar evento</button>
+  `;
+
+  content.appendChild(panel);
+
+  // data padrão = hoje
+  panel.querySelector("#ev-date").value = new Date().toISOString().slice(0, 10);
+
+  renderAttendeeCheckboxes();
+
+  panel.querySelector("#toggle-new-person").onclick = () => {
+    const box = panel.querySelector("#new-person-box");
+    box.style.display = box.style.display === "none" ? "block" : "none";
+  };
+
+  panel.querySelector("#add-person-btn").onclick = async () => {
+    const name = panel.querySelector("#new-person-name").value.trim();
+    const role = panel.querySelector("#new-person-role").value;
+    if (!name) { showToast("Digite o nome da pessoa."); return; }
+
+    const created = await createTeamMember({ name, role });
+    ALL_MEMBERS.push(created);
+    renderAttendeeCheckboxes();
+    panel.querySelector(`#att-${created.id}`).checked = true;
+    panel.querySelector("#new-person-name").value = "";
+    showToast("Pessoa adicionada à equipe!");
+  };
+
+  panel.querySelector("#create-event-btn").onclick = async () => {
+    const title = panel.querySelector("#ev-title").value.trim();
+    const date = panel.querySelector("#ev-date").value;
+    const start = panel.querySelector("#ev-start").value;
+    const end = panel.querySelector("#ev-end").value;
+    const desc = panel.querySelector("#ev-desc").value.trim();
+
+    if (!title || !date || !start || !end) {
+      showToast("Preencha título, data e horários.");
+      return;
+    }
+    if (end <= start) {
+      showToast("O horário de fim deve ser depois do início.");
+      return;
+    }
+
+    const attendeeIds = Array.from(panel.querySelectorAll("#attendee-list input:checked")).map(i => i.value);
+
+    await createEvent({
+      created_by: CURRENT_MEMBER.id,
+      title,
+      description: desc || null,
+      event_date: date,
+      start_time: start,
+      end_time: end
+    }, attendeeIds);
+
+    showToast("Evento criado!");
+
+    panel.querySelector("#ev-title").value = "";
+    panel.querySelector("#ev-desc").value = "";
+    Array.from(panel.querySelectorAll("#attendee-list input:checked")).forEach(i => i.checked = false);
+
+    refreshEvents();
+  };
+
+  function renderAttendeeCheckboxes() {
+    const box = panel.querySelector("#attendee-list");
+    const others = ALL_MEMBERS.filter(m => m.id !== CURRENT_MEMBER.id);
+
+    if (others.length === 0) {
+      box.innerHTML = `<span class="muted">Ainda não há outras pessoas cadastradas.</span>`;
+      return;
+    }
+
+    box.innerHTML = others.map(m => `
+      <label class="checkbox-pill">
+        <input type="checkbox" id="att-${m.id}" value="${m.id}" />
+        ${m.name} <span class="muted">· ${ROLE_LABELS[m.role]}</span>
+      </label>
+    `).join("");
+  }
+}
+
+init();
+</script>
+
+</body>
+</html>
