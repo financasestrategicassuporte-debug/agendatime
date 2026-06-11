@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin · Agenda · Gestão Fitness Brasil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/style.css" />
+<style>
+  .name-input{
+    font-family:var(--font-display);
+    font-size:18px;
+    text-transform:uppercase;
+    letter-spacing:0.02em;
+    border:1px solid transparent;
+    background:transparent;
+    padding:4px 6px;
+    margin:0 0 6px -6px;
+  }
+  .name-input:hover, .name-input:focus{ border-color:var(--line); background:#0e110e; }
+
+  .routine-editor{ margin-top:18px; padding-top:18px; border-top:1px solid var(--line); }
+  .routine-editor h4{
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--text-muted);
+    margin:0 0 10px;
+  }
+  .routine-form{ margin-top:14px; }
+</style>
+</head>
+<body>
+
+<div class="wrap narrow">
+
+  <header class="top">
+    <div class="brand-row">
+      <span class="brand-mark"></span>
+      <span class="brand-name">Gestão Fitness Brasil</span>
+      <a class="brand-link" href="index.html">← Rotinas da equipe</a>
+    </div>
+    <h1 class="title">Painel <span class="accent">Admin</span></h1>
+  </header>
+
+  <!-- Tela de senha -->
+  <div class="gate" id="gate">
+    <div class="gate-box">
+      <span class="brand-mark" style="margin:0 auto 10px; display:block;"></span>
+      <h2>Acesso restrito</h2>
+      <div class="field">
+        <label>Senha</label>
+        <input type="password" id="password-input" placeholder="••••••••" />
+      </div>
+      <button class="btn full" id="login-btn">Entrar</button>
+    </div>
+  </div>
+
+  <!-- Painel (some até a senha ser confirmada) -->
+  <main id="panel" style="display:none;">
+
+    <h2 class="section-title">Adicionar pessoa</h2>
+    <div class="panel">
+      <div class="field-row">
+        <div class="field">
+          <label>Nome</label>
+          <input type="text" id="new-name" placeholder="Nome completo" />
+        </div>
+        <div class="field">
+          <label>Cargo</label>
+          <select id="new-role"></select>
+        </div>
+      </div>
+      <button class="btn full" id="add-member-btn">Adicionar</button>
+    </div>
+
+    <h2 class="section-title" style="margin-top:40px;">Equipe</h2>
+    <div id="members-list">
+      <p class="muted">Carregando...</p>
+    </div>
+
+  </main>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/supabase-client.js"></script>
+<script>
+const ADMIN_PASSWORD = "Madodo1*";
+
+function showToast(msg) {
+  const toast = document.getElementById("toast");
+  toast.textContent = msg;
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 2200);
+}
+
+/* ---------- Senha ---------- */
+function checkGate() {
+  if (sessionStorage.getItem("gfb_admin_ok") === "1") {
+    document.getElementById("gate").style.display = "none";
+    document.getElementById("panel").style.display = "block";
+    initPanel();
+  }
+}
+
+document.getElementById("login-btn").onclick = () => {
+  const value = document.getElementById("password-input").value;
+  if (value === ADMIN_PASSWORD) {
+    sessionStorage.setItem("gfb_admin_ok", "1");
+    checkGate();
+  } else {
+    showToast("Senha incorreta.");
+  }
+};
+
+document.getElementById("password-input").addEventListener("keydown", e => {
+  if (e.key === "Enter") document.getElementById("login-btn").click();
+});
+
+/* ---------- Painel ---------- */
+function initPanel() {
+  document.getElementById("new-role").innerHTML = ROLES.map(r => `<option value="${r.key}">${r.label}</option>`).join("");
+
+  document.getElementById("add-member-btn").onclick = async () => {
+    const name = document.getElementById("new-name").value.trim();
+    const role = document.getElementById("new-role").value;
+    if (!name) { showToast("Digite o nome da pessoa."); return; }
+
+    await createTeamMember({ name, role });
+    document.getElementById("new-name").value = "";
+    showToast("Pessoa adicionada!");
+    loadMembers();
+  };
+
+  loadMembers();
+}
+
+async function loadMembers() {
+  const list = document.getElementById("members-list");
+  list.innerHTML = `<p class="muted">Carregando...</p>`;
+
+  const members = await fetchTeamMembers();
+
+  if (members.length === 0) {
+    list.innerHTML = `<div class="empty-state">Nenhuma pessoa cadastrada ainda.</div>`;
+    return;
+  }
+
+  list.innerHTML = "";
+  for (const member of members) {
+    list.appendChild(await buildMemberCard(member));
+  }
+}
+
+async function buildMemberCard(member) {
+  const card = document.createElement("div");
+  card.className = "member-card";
+
+  const head = document.createElement("div");
+  head.className = "member-head";
+
+  const idBox = document.createElement("div");
+  idBox.className = "member-id";
+  idBox.style.flex = "1";
+
+  const avatar = document.createElement("div");
+  avatar.className = "avatar";
+  avatar.textContent = member.initials;
+
+  const fields = document.createElement("div");
+  fields.style.flex = "1";
+
+  const nameInput = document.createElement("input");
+  nameInput.className = "name-input";
+  nameInput.value = member.name;
+  nameInput.onblur = async () => {
+    const newName = nameInput.value.trim();
+    if (!newName || newName === member.name) return;
+    await updateTeamMember(member.id, { name: newName, initials: initialsFromName(newName) });
+    member.name = newName;
+    showToast("Nome atualizado.");
+  };
+
+  const roleSelect = document.createElement("select");
+  roleSelect.innerHTML = ROLES.map(r => `<option value="${r.key}" ${r.key === member.role ? "selected" : ""}>${r.label}</option>`).join("");
+  roleSelect.onchange = async () => {
+    await updateTeamMember(member.id, { role: roleSelect.value });
+    member.role = roleSelect.value;
+    showToast("Cargo atualizado.");
+  };
+
+  fields.appendChild(nameInput);
+  fields.appendChild(roleSelect);
+
+  idBox.appendChild(avatar);
+  idBox.appendChild(fields);
+
+  const actions = document.createElement("div");
+  actions.style.display = "flex";
+  actions.style.flexDirection = "column";
+  actions.style.gap = "8px";
+
+  const link = `${location.origin}${location.pathname.replace("admin.html","")}agenda.html?p=${member.slug}`;
+
+  const copyBtn = document.createElement("button");
+  copyBtn.className = "btn secondary";
+  copyBtn.textContent = "Copiar link da agenda";
+  copyBtn.onclick = () => {
+    navigator.clipboard.writeText(link);
+    showToast("Link copiado: " + link);
+  };
+
+  const delBtn = document.createElement("button");
+  delBtn.className = "btn danger";
+  delBtn.textContent = "Excluir pessoa";
+  delBtn.onclick = async () => {
+    if (!confirm(`Excluir ${member.name}? Isso também remove a rotina fixa e os convites dessa pessoa.`)) return;
+    await deleteTeamMember(member.id);
+    showToast("Pessoa excluída.");
+    loadMembers();
+  };
+
+  actions.appendChild(copyBtn);
+  actions.appendChild(delBtn);
+
+  head.appendChild(idBox);
+  head.appendChild(actions);
+  card.appendChild(head);
+
+  // ---------- Rotina fixa ----------
+  const editor = document.createElement("div");
+  editor.className = "routine-editor";
+
+  const h4 = document.createElement("h4");
+  h4.textContent = "Rotina fixa";
+  editor.appendChild(h4);
+
+  const blockList = document.createElement("div");
+  blockList.id = `routine-${member.id}`;
+  editor.appendChild(blockList);
+
+  const form = document.createElement("div");
+  form.className = "routine-form";
+  form.innerHTML = `
+    <div class="field-row">
+      <div class="field">
+        <label>Dia</label>
+        <select class="rb-day">
+          ${[1,2,3,4,5,6].map(d => `<option value="${d}">${DAY_LABELS[d]}</option>`).join("")}
+        </select>
+      </div>
+      <div class="field">
+        <label>Início</label>
+        <input type="time" class="rb-start" value="08:00" />
+      </div>
+      <div class="field">
+        <label>Fim</label>
+        <input type="time" class="rb-end" value="09:00" />
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field" style="flex:2;">
+        <label>Título</label>
+        <input type="text" class="rb-title" placeholder="Ex: Prospecção ativa" />
+      </div>
+      <div class="field">
+        <label>Tipo</label>
+        <select class="rb-type">
+          ${Object.entries(BLOCK_TYPES).map(([k,v]) => `<option value="${k}">${v}</option>`).join("")}
+        </select>
+      </div>
+    </div>
+    <button type="button" class="btn secondary full add-block-btn">+ Adicionar bloco</button>
+  `;
+  editor.appendChild(form);
+
+  form.querySelector(".add-block-btn").onclick = async () => {
+    const title = form.querySelector(".rb-title").value.trim();
+    const start = form.querySelector(".rb-start").value;
+    const end = form.querySelector(".rb-end").value;
+    if (!title) { showToast("Digite o título do bloco."); return; }
+    if (end <= start) { showToast("O horário de fim deve ser depois do início."); return; }
+
+    await createRoutineBlock({
+      team_member_id: member.id,
+      day_of_week: parseInt(form.querySelector(".rb-day").value, 10),
+      start_time: start,
+      end_time: end,
+      title,
+      block_type: form.querySelector(".rb-type").value
+    });
+
+    form.querySelector(".rb-title").value = "";
+    showToast("Bloco adicionado.");
+    refreshRoutineList(member.id, blockList);
+  };
+
+  card.appendChild(editor);
+
+  await refreshRoutineList(member.id, blockList);
+
+  return card;
+}
+
+async function refreshRoutineList(memberId, container) {
+  const blocks = await fetchRoutineBlocks(memberId);
+
+  if (blocks.length === 0) {
+    container.innerHTML = `<p class="muted" style="font-size:13px;">Nenhum bloco definido ainda.</p>`;
+    return;
+  }
+
+  container.innerHTML = "";
+  blocks.forEach(b => {
+    const row = document.createElement("div");
+    row.className = "routine-row";
+    row.innerHTML = `
+      <span><strong>${DAY_LABELS_SHORT[b.day_of_week] || DAY_LABELS[b.day_of_week]}</strong> ·
+        ${b.start_time.slice(0,5)}–${b.end_time.slice(0,5)} ·
+        ${b.title} <span class="meta">(${BLOCK_TYPES[b.block_type] || b.block_type})</span>
+      </span>
+    `;
+    const delBtn = document.createElement("button");
+    delBtn.className = "btn danger";
+    delBtn.textContent = "Remover";
+    delBtn.onclick = async () => {
+      await deleteRoutineBlock(b.id);
+      refreshRoutineList(memberId, container);
+    };
+    row.appendChild(delBtn);
+    container.appendChild(row);
+  });
+}
+
+checkGate();
+</script>
+
+</body>
+</html>
