@@ -1,396 +1,420 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Minha Agenda · Gestão Fitness Brasil</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="assets/style.css" />
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Agenda · Gestão Fitness Brasil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0d0b;--s1:#131613;--s2:#1a1e1a;--s3:#222622;
+  --l1:#252925;--l2:#2f342f;--l3:#3a3f3a;
+  --t1:#e8ede8;--t2:#8a938a;--t3:#4a524a;
+  --green:#3ddc68;--green-dim:#0e2a18;
+  --ff:'Inter',sans-serif;--fm:'JetBrains Mono',monospace;--fd:'Anton',sans-serif;
+  --r4:4px;--r8:8px;--r12:12px;--r20:20px;--rfull:999px;
+}
+html{font-size:15px}
+body{font-family:var(--ff);background:var(--bg);color:var(--t1);min-height:100vh;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font-family:var(--ff);cursor:pointer}
+input,select,textarea{font-family:var(--ff)}
+
+.page{max-width:1060px;margin:0 auto;padding:0 20px 80px}
+
+/* topbar */
+.topbar{display:flex;align-items:center;gap:12px;padding:16px 0 20px;border-bottom:1px solid var(--l1);margin-bottom:28px}
+.brand{display:flex;align-items:center;gap:9px}
+.bmark{width:26px;height:26px;background:var(--green);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.bmark::before{content:"";width:9px;height:9px;border:2.5px solid var(--bg);border-radius:2px;transform:rotate(15deg);display:block}
+.bname{font-family:var(--fm);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t2)}
+.tback{margin-left:auto;font-size:12px;color:var(--t3);transition:color .15s}
+.tback:hover{color:var(--t1)}
+
+/* heading */
+.ptitle{font-family:var(--fd);font-size:34px;letter-spacing:.01em;text-transform:uppercase;line-height:1;margin-bottom:6px}
+.slabel{font-family:var(--fm);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--t2);margin-bottom:12px}
+.role-tag{display:inline-flex;align-items:center;padding:3px 9px;border-radius:var(--rfull);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;background:var(--s3);color:var(--t2);border:1px solid var(--l2)}
+
+/* avatar */
+.av{width:38px;height:38px;border-radius:50%;background:var(--green-dim);color:var(--green);font-family:var(--fm);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.av.lg{width:54px;height:54px;font-size:17px}
+.av.sm{width:26px;height:26px;font-size:9px}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;border-radius:var(--r8);font-size:13px;font-weight:600;border:none;transition:opacity .15s,transform .1s;cursor:pointer}
+.btn:active{transform:scale(.98)}
+.btn.pri{background:var(--green);color:var(--bg)}
+.btn.sec{background:var(--s2);color:var(--t1);border:1px solid var(--l2)}
+.btn.dan{background:transparent;color:#f87171;border:1px solid #2a1111;font-size:12px;padding:5px 10px}
+.btn.dan:hover{background:#160808}
+.btn:disabled{opacity:.4;pointer-events:none}
+
+/* form */
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--t2)}
+.frow{display:flex;gap:12px}
+.frow .field{flex:1}
+input[type=text],input[type=date],input[type=time],textarea,select{
+  background:var(--s2);border:1px solid var(--l2);border-radius:var(--r8);color:var(--t1);
+  font-size:13px;padding:8px 11px;outline:none;transition:border-color .15s;width:100%
+}
+input:focus,textarea:focus,select:focus{border-color:var(--green)}
+select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a938a' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+textarea{resize:vertical}
+
+/* board */
+.board-wrap{overflow-x:auto;margin-bottom:10px}
+.board{display:grid;gap:1px;background:var(--l1);border:1px solid var(--l1);border-radius:var(--r12);overflow:hidden;min-width:580px}
+.bc{background:var(--s1);position:relative}
+.bc.hd{background:var(--s2);display:flex;align-items:center;justify-content:center;padding:9px 4px;font-size:10px;font-weight:700;font-family:var(--fm);letter-spacing:.08em;text-transform:uppercase;color:var(--t2)}
+.bc.hd.today{color:var(--green)}
+.bc.tl{background:var(--s2);display:flex;align-items:flex-start;justify-content:center;padding-top:4px;font-family:var(--fm);font-size:10px;color:var(--t3)}
+.bc.day{cursor:pointer;transition:background .1s;min-height:42px}
+.bc.day:hover{background:rgba(61,220,104,.04)}
+.bblock{position:absolute;left:3px;right:3px;border-radius:var(--r4);padding:3px 6px;font-size:10px;font-weight:600;overflow:hidden;z-index:1}
+.bblock .bt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bblock .bm{font-size:9px;opacity:.7;font-family:var(--fm);margin-top:1px}
+
+/* legend */
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--t2)}
+.leg-dot{width:9px;height:9px;border-radius:50%}
+
+/* events */
+.ev-card{background:var(--s1);border:1px solid var(--l1);border-radius:var(--r12);padding:15px 17px;display:flex;gap:14px;align-items:flex-start;margin-bottom:9px}
+.ev-main{flex:1}
+.ev-date{font-family:var(--fm);font-size:10px;color:var(--t2);margin-bottom:4px}
+.ev-card h4{font-size:14px;font-weight:600;margin-bottom:5px}
+.ev-card p{font-size:12px;color:var(--t2);line-height:1.5;margin-bottom:7px}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--s2);border:1px solid var(--l2);border-radius:var(--rfull);padding:2px 8px 2px 4px;font-size:11px;color:var(--t2)}
+
+/* checkbox list */
+.cblist{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.cbpill{display:flex;align-items:center;gap:9px;background:var(--s2);border:1px solid var(--l1);border-radius:var(--r8);padding:8px 11px;cursor:pointer;font-size:13px;transition:border-color .15s}
+.cbpill:hover{border-color:var(--l2)}
+.cbpill input{accent-color:var(--green);width:14px;height:14px;cursor:pointer}
+
+/* modal */
+.moverlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px;opacity:0;pointer-events:none;transition:opacity .18s}
+.moverlay.open{opacity:1;pointer-events:all}
+.mbox{background:var(--s1);border:1px solid var(--l2);border-radius:var(--r20);padding:22px;width:100%;max-width:480px;transform:translateY(8px);transition:transform .18s;max-height:90vh;overflow-y:auto}
+.moverlay.open .mbox{transform:translateY(0)}
+.mhead2{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.mhead2 h3{font-family:var(--fd);font-size:17px;text-transform:uppercase;letter-spacing:.04em}
+.mclose{width:28px;height:28px;background:var(--s2);border:1px solid var(--l2);border-radius:50%;color:var(--t2);font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.mclose:hover{color:var(--t1)}
+.mfoot{display:flex;gap:10px;margin-top:18px}
+
+/* toast */
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--s3);border:1px solid var(--l2);border-radius:var(--rfull);padding:8px 18px;font-size:13px;font-weight:500;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap;z-index:9999}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* empty / utils */
+.empty{text-align:center;padding:32px 16px;color:var(--t2);font-size:13px;border:1px dashed var(--l2);border-radius:var(--r12)}
+.muted{color:var(--t2);font-size:13px}
+.sec-block{margin-bottom:40px}
+
+@media(max-width:640px){.frow{flex-direction:column}}
+</style>
 </head>
 <body>
-
-<div class="wrap">
-
-  <header class="top">
-    <div class="brand-row">
-      <span class="brand-mark"></span>
-      <span class="brand-name">Gestão Fitness Brasil</span>
-      <a class="brand-link" href="index.html">← Rotinas da equipe</a>
+<div class="page">
+  <div class="topbar">
+    <div class="brand">
+      <div class="bmark"></div>
+      <span class="bname">Gestão Fitness Brasil</span>
     </div>
-  </header>
-
-  <main id="content">
-    <p class="muted">Carregando...</p>
-  </main>
-
+    <a class="tback" href="index.html">← Equipe</a>
+  </div>
+  <main id="content"><p class="muted">Carregando...</p></main>
 </div>
 
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/supabase-client.js"></script>
-<script src="assets/board.js"></script>
-<script>
-let CURRENT_MEMBER = null;
-let ALL_MEMBERS = [];
-
-function showToast(msg) {
-  const toast = document.getElementById("toast");
-  toast.textContent = msg;
-  toast.classList.add("show");
-  setTimeout(() => toast.classList.remove("show"), 2200);
-}
-
-function formatEventDate(isoDate) {
-  const d = new Date(isoDate + "T00:00:00");
-  const weekday = new Intl.DateTimeFormat("pt-BR", { weekday: "short" }).format(d).replace(".", "").toUpperCase();
-  return `${weekday} · ${formatDateBR(isoDate)}`;
-}
-
-async function init() {
-  const slug = new URLSearchParams(location.search).get("p");
-  const content = document.getElementById("content");
-
-  if (!slug) {
-    content.innerHTML = `<div class="empty-state">Nenhuma pessoa informada na URL. Use um link no formato <code>agenda.html?p=slug-da-pessoa</code>.<br><br><a class="btn secondary" href="index.html">Voltar para Rotinas</a></div>`;
-    return;
-  }
-
-  try {
-    CURRENT_MEMBER = await fetchTeamMemberBySlug(slug);
-  } catch (err) {
-    content.innerHTML = `<div class="empty-state">Erro ao carregar dados. Verifique a configuração do Supabase em <code>assets/supabase-client.js</code>.<br><span class="muted">${err.message || err}</span></div>`;
-    return;
-  }
-
-  if (!CURRENT_MEMBER) {
-    content.innerHTML = `<div class="empty-state">Pessoa não encontrada para o link "${slug}".<br><br><a class="btn secondary" href="index.html">Voltar para Rotinas</a></div>`;
-    return;
-  }
-
-  document.title = CURRENT_MEMBER.name + " · Agenda · GFB";
-
-  ALL_MEMBERS = await fetchTeamMembers();
-
-  renderHeader();
-  await renderRoutine();
-  await renderEvents();
-  renderEventForm();
-}
-
-/* ---------- Cabeçalho da pessoa ---------- */
-function renderHeader() {
-  const content = document.getElementById("content");
-
-  const header = document.createElement("div");
-  header.className = "member-head";
-  header.style.marginBottom = "32px";
-
-  const idBox = document.createElement("div");
-  idBox.className = "member-id";
-
-  const avatar = document.createElement("div");
-  avatar.className = "avatar";
-  avatar.style.width = "60px";
-  avatar.style.height = "60px";
-  avatar.style.fontSize = "22px";
-  avatar.textContent = CURRENT_MEMBER.initials;
-
-  const nameBox = document.createElement("div");
-  const h1 = document.createElement("h1");
-  h1.textContent = CURRENT_MEMBER.name;
-
-  const roleTag = document.createElement("span");
-  roleTag.className = "role-tag " + CURRENT_MEMBER.role;
-  roleTag.textContent = ROLE_LABELS[CURRENT_MEMBER.role];
-
-  nameBox.appendChild(h1);
-  nameBox.appendChild(roleTag);
-
-  idBox.appendChild(avatar);
-  idBox.appendChild(nameBox);
-
-  const copyBtn = document.createElement("button");
-  copyBtn.className = "btn secondary";
-  copyBtn.textContent = "Copiar link desta agenda";
-  copyBtn.onclick = () => {
-    navigator.clipboard.writeText(location.href);
-    showToast("Link copiado!");
-  };
-
-  header.appendChild(idBox);
-  header.appendChild(copyBtn);
-  content.appendChild(header);
-}
-
-/* ---------- Rotina fixa ---------- */
-async function renderRoutine() {
-  const content = document.getElementById("content");
-
-  const title = document.createElement("h2");
-  title.className = "section-title";
-  title.textContent = "Rotina fixa";
-  content.appendChild(title);
-
-  const legend = document.createElement("div");
-  legend.className = "legend";
-  renderLegend(legend);
-  content.appendChild(legend);
-
-  const blocks = await fetchRoutineBlocks(CURRENT_MEMBER.id);
-  const todayDay = new Date().getDay();
-  content.appendChild(renderBoard(groupBlocksByDay(blocks), todayDay));
-
-  const note = document.createElement("p");
-  note.className = "muted";
-  note.style.fontSize = "12px";
-  note.style.marginTop = "10px";
-  note.textContent = "A rotina fixa é definida pelo painel administrativo.";
-  content.appendChild(note);
-}
-
-/* ---------- Lista de eventos / convites ---------- */
-async function renderEvents() {
-  const content = document.getElementById("content");
-
-  const title = document.createElement("h2");
-  title.className = "section-title";
-  title.style.marginTop = "48px";
-  title.textContent = "Próximos eventos";
-  content.appendChild(title);
-
-  const list = document.createElement("div");
-  list.id = "events-list";
-  content.appendChild(list);
-
-  await refreshEvents();
-}
-
-async function refreshEvents() {
-  const list = document.getElementById("events-list");
-  list.innerHTML = `<p class="muted">Carregando eventos...</p>`;
-
-  const events = await fetchEventsForMember(CURRENT_MEMBER.id);
-  list.innerHTML = "";
-
-  if (events.length === 0) {
-    list.innerHTML = `<div class="empty-state">Nenhum evento agendado ainda. Crie um evento abaixo ou aguarde convites do time.</div>`;
-    return;
-  }
-
-  events.forEach(ev => {
-    const card = document.createElement("div");
-    card.className = "event-card";
-
-    const main = document.createElement("div");
-
-    const date = document.createElement("div");
-    date.className = "event-date";
-    date.textContent = `${formatEventDate(ev.event_date)} · ${ev.start_time.slice(0,5)}–${ev.end_time.slice(0,5)}`;
-
-    const h4 = document.createElement("h4");
-    h4.textContent = ev.title;
-
-    main.appendChild(date);
-    main.appendChild(h4);
-
-    if (ev.description) {
-      const desc = document.createElement("p");
-      desc.textContent = ev.description;
-      main.appendChild(desc);
-    }
-
-    const isOwner = ev.created_by === CURRENT_MEMBER.id;
-    const ownerName = ev.team_members ? ev.team_members.name : null;
-
-    const attendees = document.createElement("div");
-    attendees.className = "attendee-list";
-
-    const organizerChip = document.createElement("span");
-    organizerChip.className = "chip";
-    organizerChip.innerHTML = `<span class="avatar small">${(isOwner ? CURRENT_MEMBER.initials : (ownerName ? initialsFromName(ownerName) : "?"))}</span> Organizador: ${isOwner ? "Você" : (ownerName || "—")}`;
-    attendees.appendChild(organizerChip);
-
-    (ev.event_attendees || []).forEach(a => {
-      if (!a.team_members) return;
-      const chip = document.createElement("span");
-      chip.className = "chip";
-      const isSelf = a.team_members.id === CURRENT_MEMBER.id;
-      chip.innerHTML = `<span class="avatar small">${a.team_members.initials}</span> ${isSelf ? "Você" : a.team_members.name}`;
-      attendees.appendChild(chip);
-    });
-
-    main.appendChild(attendees);
-    card.appendChild(main);
-
-    const side = document.createElement("div");
-    if (isOwner) {
-      const delBtn = document.createElement("button");
-      delBtn.className = "btn danger";
-      delBtn.textContent = "Excluir";
-      delBtn.onclick = async () => {
-        if (!confirm(`Excluir o evento "${ev.title}"?`)) return;
-        await deleteEvent(ev.id);
-        showToast("Evento excluído.");
-        refreshEvents();
-      };
-      side.appendChild(delBtn);
-    } else {
-      const badge = document.createElement("span");
-      badge.className = "role-tag";
-      badge.textContent = "Convidado(a)";
-      side.appendChild(badge);
-    }
-    card.appendChild(side);
-
-    list.appendChild(card);
-  });
-}
-
-/* ---------- Formulário de novo evento ---------- */
-function renderEventForm() {
-  const content = document.getElementById("content");
-
-  const title = document.createElement("h2");
-  title.className = "section-title";
-  title.style.marginTop = "48px";
-  title.textContent = "Novo evento";
-  content.appendChild(title);
-
-  const panel = document.createElement("div");
-  panel.className = "panel";
-
-  panel.innerHTML = `
-    <div class="field">
-      <label>Título</label>
-      <input type="text" id="ev-title" placeholder="Ex: Reunião de alinhamento" />
+<!-- MODAL EVENTO -->
+<div class="moverlay" id="evModal">
+  <div class="mbox">
+    <div class="mhead2">
+      <h3>Novo evento</h3>
+      <button class="mclose" id="evClose">✕</button>
     </div>
-    <div class="field-row">
+
+    <div class="field" style="margin-bottom:13px">
+      <label>Título</label>
+      <input type="text" id="evTitle" placeholder="Ex: Reunião de alinhamento"/>
+    </div>
+
+    <div class="frow" style="margin-bottom:13px">
       <div class="field">
         <label>Data</label>
-        <input type="date" id="ev-date" />
+        <input type="date" id="evDate"/>
       </div>
       <div class="field">
         <label>Início</label>
-        <input type="time" id="ev-start" value="09:00" />
+        <input type="time" id="evStart" value="09:00"/>
       </div>
       <div class="field">
         <label>Fim</label>
-        <input type="time" id="ev-end" value="10:00" />
+        <input type="time" id="evEnd" value="10:00"/>
       </div>
     </div>
-    <div class="field">
-      <label>Descrição (opcional)</label>
-      <textarea id="ev-desc" rows="2" placeholder="Detalhes, link de chamada, pauta..."></textarea>
+
+    <div class="field" style="margin-bottom:13px">
+      <label>Descrição <span style="text-transform:none;font-weight:400;color:var(--t2)">(opcional)</span></label>
+      <textarea id="evDesc" rows="2" placeholder="Link de chamada, pauta..."></textarea>
     </div>
-    <div class="field">
-      <label>Convidar membros do time</label>
-      <div class="checkbox-list" id="attendee-list"></div>
+
+    <div class="field" style="margin-bottom:13px">
+      <label>Convidar membros</label>
+      <div class="cblist" id="evAttendees"></div>
     </div>
-    <div class="field">
-      <button type="button" class="btn secondary" id="toggle-new-person">+ Adicionar nova pessoa</button>
-      <div id="new-person-box" style="display:none; margin-top:12px;">
-        <div class="field-row">
+
+    <div class="field" style="margin-bottom:0">
+      <button type="button" class="btn sec" style="font-size:12px;justify-content:flex-start;padding:7px 11px" id="toggleNP">+ Adicionar nova pessoa à equipe</button>
+      <div id="npBox" style="display:none;margin-top:10px;padding:13px;background:var(--s2);border:1px solid var(--l1);border-radius:var(--r8)">
+        <div class="frow" style="margin-bottom:10px">
           <div class="field">
             <label>Nome</label>
-            <input type="text" id="new-person-name" placeholder="Nome completo" />
+            <input type="text" id="npName" placeholder="Nome completo"/>
           </div>
-          <div class="field">
+          <div class="field" style="flex:0 0 140px">
             <label>Cargo</label>
-            <select id="new-person-role">
-              ${ROLES.map(r => `<option value="${r.key}">${r.label}</option>`).join("")}
-            </select>
+            <select id="npRole"></select>
           </div>
         </div>
-        <button type="button" class="btn secondary" id="add-person-btn">Adicionar à equipe e convidar</button>
+        <button type="button" class="btn sec" style="width:100%;font-size:12px" id="addNpBtn">Adicionar e convidar</button>
       </div>
     </div>
-    <button type="button" class="btn full" id="create-event-btn" style="margin-top:8px;">Criar evento</button>
-  `;
 
-  content.appendChild(panel);
+    <div class="mfoot">
+      <button class="btn sec" style="flex:1" id="evCancel">Cancelar</button>
+      <button class="btn pri" style="flex:1" id="evSave">Criar evento</button>
+    </div>
+  </div>
+</div>
 
-  // data padrão = hoje
-  panel.querySelector("#ev-date").value = new Date().toISOString().slice(0, 10);
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = "https://SEU_PROJETO.supabase.co";
+const SUPABASE_KEY = "SUA_ANON_KEY";
+const _db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  renderAttendeeCheckboxes();
+const ROLES        = [{key:"gestor",label:"Gestor"},{key:"consultor",label:"Consultor"},{key:"atendimento",label:"Atendimento"},{key:"operacional",label:"Operacional"}];
+const ROLE_LABELS  = Object.fromEntries(ROLES.map(r=>[r.key,r.label]));
+const BLOCK_TYPES  = {prospeccao:"Prospecção",followup:"Follow-up",reuniao:"Reunião",admin:"Admin",treinamento:"Treinamento",outros:"Outros"};
+const BLOCK_COLORS = {prospeccao:"#3ddc68",followup:"#3b82f6",reuniao:"#f97316",admin:"#a855f7",treinamento:"#ec4899",outros:"#6b7280"};
+const BLOCK_BG     = {prospeccao:"rgba(61,220,104,.13)",followup:"rgba(59,130,246,.13)",reuniao:"rgba(249,115,22,.13)",admin:"rgba(168,85,247,.13)",treinamento:"rgba(236,72,153,.13)",outros:"rgba(107,114,128,.13)"};
+const DAY_SHORT    = {1:"SEG",2:"TER",3:"QUA",4:"QUI",5:"SEX",6:"SÁB"};
 
-  panel.querySelector("#toggle-new-person").onclick = () => {
-    const box = panel.querySelector("#new-person-box");
-    box.style.display = box.style.display === "none" ? "block" : "none";
+function initials(n){return n.trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("").toUpperCase();}
+function slugFromName(n){return n.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");}
+function fmtDate(iso){const[y,m,d]=iso.split("-");return`${d}/${m}/${y}`;}
+function fmtDateDisplay(iso){const d=new Date(iso+"T00:00:00");const wd=new Intl.DateTimeFormat("pt-BR",{weekday:"short"}).format(d).replace(".","").toUpperCase();return`${wd} · ${fmtDate(iso)}`;}
+
+function toast(msg){const el=document.getElementById("toast");el.textContent=msg;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),2200);}
+
+let MEMBER=null, ALL_MEMBERS=[];
+
+async function init(){
+  const slug=new URLSearchParams(location.search).get("p");
+  const content=document.getElementById("content");
+  if(!slug){content.innerHTML=`<div class="empty">Nenhuma pessoa na URL.<br><br><a href="index.html" style="color:var(--green)">← Voltar</a></div>`;return;}
+  try{
+    const{data,error}=await _db.from("team_members").select("*").eq("slug",slug).single();
+    if(error||!data){content.innerHTML=`<div class="empty">Pessoa não encontrada.<br><br><a href="index.html" style="color:var(--green)">← Voltar</a></div>`;return;}
+    MEMBER=data;
+  }catch(e){content.innerHTML=`<div class="empty">Erro ao carregar: ${e.message}</div>`;return;}
+
+  document.title=`${MEMBER.name} · Agenda · GFB`;
+  const{data:members}=await _db.from("team_members").select("*").order("name");
+  ALL_MEMBERS=members||[];
+  content.innerHTML="";
+  renderHeader(); await renderRoutine(); await renderEvents(); initModal();
+}
+
+/* header */
+function renderHeader(){
+  const c=document.getElementById("content");
+  const wrap=document.createElement("div");
+  wrap.style.cssText="display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:28px;flex-wrap:wrap";
+  const id=document.createElement("div"); id.style.cssText="display:flex;align-items:center;gap:13px";
+  const av=document.createElement("div"); av.className="av lg"; av.textContent=MEMBER.initials;
+  const meta=document.createElement("div");
+  const h1=document.createElement("h1"); h1.className="ptitle"; h1.textContent=MEMBER.name;
+  const tag=document.createElement("span"); tag.className="role-tag"; tag.textContent=ROLE_LABELS[MEMBER.role]||MEMBER.role;
+  meta.appendChild(h1); meta.appendChild(tag);
+  id.appendChild(av); id.appendChild(meta);
+  const cp=document.createElement("button"); cp.className="btn sec"; cp.textContent="Copiar link";
+  cp.onclick=()=>{navigator.clipboard.writeText(location.href);toast("Link copiado!");};
+  wrap.appendChild(id); wrap.appendChild(cp); c.appendChild(wrap);
+}
+
+/* rotina */
+async function renderRoutine(){
+  const c=document.getElementById("content");
+  const sec=document.createElement("div"); sec.className="sec-block";
+  const lbl=document.createElement("p"); lbl.className="slabel"; lbl.textContent="Rotina fixa da semana";
+  sec.appendChild(lbl);
+  const legend=document.createElement("div"); legend.className="legend";
+  Object.entries(BLOCK_COLORS).forEach(([t,col])=>{
+    const item=document.createElement("div"); item.className="leg-item";
+    item.innerHTML=`<span class="leg-dot" style="background:${col}"></span>${BLOCK_TYPES[t]}`;
+    legend.appendChild(item);
+  });
+  sec.appendChild(legend);
+  const{data:blocks}=await _db.from("routine_blocks").select("*").eq("team_member_id",MEMBER.id).order("day_of_week").order("start_time");
+  const wrap=document.createElement("div"); wrap.className="board-wrap";
+  wrap.appendChild(buildBoard(blocks||[], new Date().getDay()));
+  sec.appendChild(wrap);
+  const note=document.createElement("p"); note.style.cssText="font-size:11px;color:var(--t3);margin-top:8px"; note.textContent="Rotina gerenciada pelo painel admin.";
+  sec.appendChild(note);
+  c.appendChild(sec);
+}
+
+function buildBoard(blocks,todayDay){
+  const HOURS=[]; for(let h=7;h<=20;h++)HOURS.push(h);
+  const PX=42, days=[1,2,3,4,5,6];
+  const grid=document.createElement("div"); grid.className="board";
+  grid.style.gridTemplateColumns="40px repeat(6,1fr)";
+  const corner=document.createElement("div"); corner.className="bc hd"; grid.appendChild(corner);
+  days.forEach(d=>{const c=document.createElement("div");c.className="bc hd"+(d===todayDay?" today":"");c.textContent=DAY_SHORT[d];grid.appendChild(c);});
+  HOURS.forEach(h=>{
+    const tl=document.createElement("div"); tl.className="bc tl"; tl.style.height=PX+"px"; tl.textContent=`${h}h`; grid.appendChild(tl);
+    days.forEach(d=>{
+      const cell=document.createElement("div"); cell.className="bc day"; cell.style.height=PX+"px";
+      blocks.filter(b=>b.day_of_week===d).forEach(b=>{
+        const[sh,sm]=b.start_time.split(":").map(Number);
+        const[eh,em]=b.end_time.split(":").map(Number);
+        const s=sh+sm/60, e=eh+em/60;
+        if(s>=h&&s<h+1){
+          const top=Math.round((s-h)*PX);
+          const ht=Math.max(18,Math.round((e-s)*PX)-2);
+          const col=BLOCK_COLORS[b.block_type]||"#6b7280";
+          const bg=BLOCK_BG[b.block_type]||"rgba(107,114,128,.13)";
+          const bl=document.createElement("div"); bl.className="bblock";
+          bl.style.cssText=`top:${top}px;height:${ht}px;background:${bg};border-left:3px solid ${col};`;
+          bl.innerHTML=`<div class="bt" style="color:${col}">${b.title}</div><div class="bm">${b.start_time.slice(0,5)}–${b.end_time.slice(0,5)}</div>`;
+          cell.appendChild(bl);
+        }
+      });
+      grid.appendChild(cell);
+    });
+  });
+  return grid;
+}
+
+/* eventos */
+async function renderEvents(){
+  const c=document.getElementById("content");
+  const sec=document.createElement("div"); sec.className="sec-block"; sec.id="evSec";
+  const head=document.createElement("div"); head.style.cssText="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px";
+  const lbl=document.createElement("p"); lbl.className="slabel"; lbl.style.margin="0"; lbl.textContent="Próximos eventos";
+  const ab=document.createElement("button"); ab.className="btn pri"; ab.style.fontSize="12px"; ab.textContent="+ Novo evento"; ab.onclick=openModal;
+  head.appendChild(lbl); head.appendChild(ab); sec.appendChild(head);
+  const list=document.createElement("div"); list.id="evList"; sec.appendChild(list);
+  c.appendChild(sec);
+  await refreshEvents();
+}
+
+async function refreshEvents(){
+  const list=document.getElementById("evList"); if(!list)return;
+  list.innerHTML=`<p class="muted">Carregando...</p>`;
+  const today=new Date().toISOString().slice(0,10);
+  const{data:owned}=await _db.from("events").select("*,team_members!events_created_by_fkey(id,name,initials),event_attendees(team_members(id,name,initials))").eq("created_by",MEMBER.id).gte("event_date",today).order("event_date").order("start_time");
+  const{data:invRows}=await _db.from("event_attendees").select("events(*,team_members!events_created_by_fkey(id,name,initials),event_attendees(team_members(id,name,initials)))").eq("team_member_id",MEMBER.id);
+  const inv=(invRows||[]).map(r=>r.events).filter(Boolean);
+  const seen=new Set(); const all=[...(owned||[]),...inv].filter(e=>{if(!e||seen.has(e.id))return false;seen.add(e.id);return true;}).filter(e=>e.event_date>=today).sort((a,b)=>a.event_date.localeCompare(b.event_date)||a.start_time.localeCompare(b.start_time));
+  list.innerHTML="";
+  if(!all.length){list.innerHTML=`<div class="empty">Nenhum evento agendado. Use o botão acima para criar.</div>`;return;}
+  all.forEach(ev=>{
+    const card=document.createElement("div"); card.className="ev-card";
+    const main=document.createElement("div"); main.className="ev-main";
+    const de=document.createElement("div"); de.className="ev-date"; de.textContent=`${fmtDateDisplay(ev.event_date)} · ${ev.start_time.slice(0,5)}–${ev.end_time.slice(0,5)}`;
+    const ti=document.createElement("h4"); ti.textContent=ev.title;
+    main.appendChild(de); main.appendChild(ti);
+    if(ev.description){const p=document.createElement("p");p.textContent=ev.description;main.appendChild(p);}
+    const chips=document.createElement("div"); chips.className="chips";
+    const isOwner=ev.created_by===MEMBER.id;
+    const ownerName=ev.team_members?.name;
+    const c0=document.createElement("span"); c0.className="chip";
+    const a0=document.createElement("span"); a0.className="av sm"; a0.style.cssText="background:var(--green-dim);color:var(--green)"; a0.textContent=isOwner?MEMBER.initials:(ownerName?initials(ownerName):"?");
+    c0.appendChild(a0); c0.append(" "+(isOwner?"Você (org.)":(ownerName||"—"))); chips.appendChild(c0);
+    (ev.event_attendees||[]).forEach(a=>{
+      if(!a.team_members)return;
+      const cx=document.createElement("span"); cx.className="chip";
+      const ax=document.createElement("span"); ax.className="av sm"; ax.textContent=a.team_members.initials;
+      const isSelf=a.team_members.id===MEMBER.id;
+      cx.appendChild(ax); cx.append(" "+(isSelf?"Você":a.team_members.name)); chips.appendChild(cx);
+    });
+    main.appendChild(chips); card.appendChild(main);
+    const side=document.createElement("div"); side.style.flexShrink="0";
+    if(isOwner){
+      const db=document.createElement("button"); db.className="btn dan"; db.textContent="Excluir";
+      db.onclick=async()=>{if(!confirm(`Excluir "${ev.title}"?`))return;await _db.from("event_attendees").delete().eq("event_id",ev.id);await _db.from("events").delete().eq("id",ev.id);toast("Evento excluído.");refreshEvents();};
+      side.appendChild(db);
+    }else{const b=document.createElement("span");b.className="role-tag";b.textContent="Convidado(a)";side.appendChild(b);}
+    card.appendChild(side); list.appendChild(card);
+  });
+}
+
+/* modal evento */
+function initModal(){
+  document.getElementById("npRole").innerHTML=ROLES.map(r=>`<option value="${r.key}">${r.label}</option>`).join("");
+  document.getElementById("evClose").onclick=closeModal;
+  document.getElementById("evCancel").onclick=closeModal;
+  document.getElementById("evModal").addEventListener("click",e=>{if(e.target===document.getElementById("evModal"))closeModal();});
+  document.getElementById("toggleNP").onclick=()=>{const b=document.getElementById("npBox");b.style.display=b.style.display==="none"?"block":"none";};
+  document.getElementById("addNpBtn").onclick=async()=>{
+    const name=document.getElementById("npName").value.trim();
+    const role=document.getElementById("npRole").value;
+    if(!name){toast("Digite o nome.");return;}
+    const{data:created}=await _db.from("team_members").insert([{name,role,initials:initials(name),slug:slugFromName(name)}]).select().single();
+    if(created){ALL_MEMBERS.push(created);renderCheckboxes();const cb=document.querySelector(`#evAttendees input[value="${created.id}"]`);if(cb)cb.checked=true;}
+    document.getElementById("npName").value=""; document.getElementById("npBox").style.display="none"; toast("Pessoa adicionada!");
   };
-
-  panel.querySelector("#add-person-btn").onclick = async () => {
-    const name = panel.querySelector("#new-person-name").value.trim();
-    const role = panel.querySelector("#new-person-role").value;
-    if (!name) { showToast("Digite o nome da pessoa."); return; }
-
-    const created = await createTeamMember({ name, role });
-    ALL_MEMBERS.push(created);
-    renderAttendeeCheckboxes();
-    panel.querySelector(`#att-${created.id}`).checked = true;
-    panel.querySelector("#new-person-name").value = "";
-    showToast("Pessoa adicionada à equipe!");
+  document.getElementById("evSave").onclick=async()=>{
+    const title=document.getElementById("evTitle").value.trim();
+    const date=document.getElementById("evDate").value;
+    const start=document.getElementById("evStart").value;
+    const end=document.getElementById("evEnd").value;
+    const desc=document.getElementById("evDesc").value.trim();
+    if(!title||!date||!start||!end){toast("Preencha título, data e horários.");return;}
+    if(end<=start){toast("Fim deve ser depois do início.");return;}
+    const attIds=[...document.querySelectorAll("#evAttendees input:checked")].map(i=>i.value);
+    document.getElementById("evSave").disabled=true;
+    try{
+      const{data:ev}=await _db.from("events").insert([{created_by:MEMBER.id,title,description:desc||null,event_date:date,start_time:start,end_time:end}]).select().single();
+      if(attIds.length)await _db.from("event_attendees").insert(attIds.map(id=>({event_id:ev.id,team_member_id:id})));
+      toast("Evento criado!"); closeModal(); refreshEvents();
+    }catch(e){toast("Erro: "+e.message);}
+    finally{document.getElementById("evSave").disabled=false;}
   };
-
-  panel.querySelector("#create-event-btn").onclick = async () => {
-    const title = panel.querySelector("#ev-title").value.trim();
-    const date = panel.querySelector("#ev-date").value;
-    const start = panel.querySelector("#ev-start").value;
-    const end = panel.querySelector("#ev-end").value;
-    const desc = panel.querySelector("#ev-desc").value.trim();
-
-    if (!title || !date || !start || !end) {
-      showToast("Preencha título, data e horários.");
-      return;
-    }
-    if (end <= start) {
-      showToast("O horário de fim deve ser depois do início.");
-      return;
-    }
-
-    const attendeeIds = Array.from(panel.querySelectorAll("#attendee-list input:checked")).map(i => i.value);
-
-    await createEvent({
-      created_by: CURRENT_MEMBER.id,
-      title,
-      description: desc || null,
-      event_date: date,
-      start_time: start,
-      end_time: end
-    }, attendeeIds);
-
-    showToast("Evento criado!");
-
-    panel.querySelector("#ev-title").value = "";
-    panel.querySelector("#ev-desc").value = "";
-    Array.from(panel.querySelectorAll("#attendee-list input:checked")).forEach(i => i.checked = false);
-
-    refreshEvents();
-  };
-
-  function renderAttendeeCheckboxes() {
-    const box = panel.querySelector("#attendee-list");
-    const others = ALL_MEMBERS.filter(m => m.id !== CURRENT_MEMBER.id);
-
-    if (others.length === 0) {
-      box.innerHTML = `<span class="muted">Ainda não há outras pessoas cadastradas.</span>`;
-      return;
-    }
-
-    box.innerHTML = others.map(m => `
-      <label class="checkbox-pill">
-        <input type="checkbox" id="att-${m.id}" value="${m.id}" />
-        ${m.name} <span class="muted">· ${ROLE_LABELS[m.role]}</span>
-      </label>
-    `).join("");
-  }
+}
+function openModal(){
+  document.getElementById("evTitle").value="";
+  document.getElementById("evDate").value=new Date().toISOString().slice(0,10);
+  document.getElementById("evStart").value="09:00";
+  document.getElementById("evEnd").value="10:00";
+  document.getElementById("evDesc").value="";
+  document.getElementById("npBox").style.display="none";
+  renderCheckboxes();
+  document.getElementById("evModal").classList.add("open");
+  setTimeout(()=>document.getElementById("evTitle").focus(),120);
+}
+function closeModal(){document.getElementById("evModal").classList.remove("open");}
+function renderCheckboxes(){
+  const box=document.getElementById("evAttendees");
+  const others=ALL_MEMBERS.filter(m=>m.id!==MEMBER.id);
+  if(!others.length){box.innerHTML=`<span class="muted">Nenhum outro membro cadastrado.</span>`;return;}
+  box.innerHTML=others.map(m=>`<label class="cbpill"><input type="checkbox" value="${m.id}"/><span class="av sm">${m.initials}</span>${m.name}<span class="muted" style="margin-left:4px">· ${ROLE_LABELS[m.role]||m.role}</span></label>`).join("");
 }
 
 init();
 </script>
-
 </body>
 </html>
