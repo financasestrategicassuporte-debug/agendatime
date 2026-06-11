@@ -1,365 +1,442 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Admin · Agenda · Gestão Fitness Brasil</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="assets/style.css" />
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Admin · Gestão Fitness Brasil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet"/>
 <style>
-  .name-input{
-    font-family:var(--font-display);
-    font-size:18px;
-    text-transform:uppercase;
-    letter-spacing:0.02em;
-    border:1px solid transparent;
-    background:transparent;
-    padding:4px 6px;
-    margin:0 0 6px -6px;
-  }
-  .name-input:hover, .name-input:focus{ border-color:var(--line); background:#0e110e; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0d0b;--s1:#131613;--s2:#1a1e1a;--s3:#222622;
+  --l1:#252925;--l2:#2f342f;--l3:#3a3f3a;
+  --t1:#e8ede8;--t2:#8a938a;--t3:#4a524a;
+  --green:#3ddc68;--green-dim:#0e2a18;
+  --ff:'Inter',sans-serif;--fm:'JetBrains Mono',monospace;--fd:'Anton',sans-serif;
+  --r4:4px;--r8:8px;--r12:12px;--r20:20px;--rfull:999px;
+}
+html{font-size:15px}
+body{font-family:var(--ff);background:var(--bg);color:var(--t1);min-height:100vh;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font-family:var(--ff);cursor:pointer}
+input,select,textarea{font-family:var(--ff)}
 
-  .routine-editor{ margin-top:18px; padding-top:18px; border-top:1px solid var(--line); }
-  .routine-editor h4{
-    font-family:var(--font-mono);
-    font-size:11px;
-    letter-spacing:0.1em;
-    text-transform:uppercase;
-    color:var(--text-muted);
-    margin:0 0 10px;
-  }
-  .routine-form{ margin-top:14px; }
+/* layout */
+.page{max-width:740px;margin:0 auto;padding:0 20px 80px}
+
+/* topbar */
+.topbar{display:flex;align-items:center;gap:12px;padding:16px 0 20px;border-bottom:1px solid var(--l1);margin-bottom:28px}
+.brand{display:flex;align-items:center;gap:9px}
+.bmark{width:26px;height:26px;background:var(--green);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.bmark::before{content:"";width:9px;height:9px;border:2.5px solid var(--bg);border-radius:2px;transform:rotate(15deg);display:block}
+.bname{font-family:var(--fm);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t2)}
+.tback{margin-left:auto;font-size:12px;color:var(--t3);transition:color .15s}
+.tback:hover{color:var(--t1)}
+
+/* headings */
+.ptitle{font-family:var(--fd);font-size:34px;letter-spacing:.01em;text-transform:uppercase;line-height:1;margin-bottom:28px}
+.ptitle .hi{color:var(--green)}
+.slabel{font-family:var(--fm);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--t2);margin-bottom:12px}
+
+/* panel */
+.panel{background:var(--s1);border:1px solid var(--l1);border-radius:var(--r12);padding:18px 20px;margin-bottom:10px}
+
+/* form */
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--t2)}
+.frow{display:flex;gap:12px}
+.frow .field{flex:1}
+input[type=text],input[type=password],input[type=date],input[type=time],textarea,select{
+  background:var(--s2);border:1px solid var(--l2);border-radius:var(--r8);color:var(--t1);
+  font-size:13px;padding:8px 11px;outline:none;transition:border-color .15s;width:100%
+}
+input:focus,textarea:focus,select:focus{border-color:var(--green)}
+select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a938a' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;border-radius:var(--r8);font-size:13px;font-weight:600;border:none;transition:opacity .15s,transform .1s;cursor:pointer}
+.btn:active{transform:scale(.98)}
+.btn.pri{background:var(--green);color:var(--bg)}
+.btn.sec{background:var(--s2);color:var(--t1);border:1px solid var(--l2)}
+.btn.dan{background:transparent;color:#f87171;border:1px solid #2a1111;font-size:12px;padding:5px 10px}
+.btn.dan:hover{background:#160808}
+.btn.ghost{background:transparent;color:var(--t2);border:1px solid transparent;font-size:12px;padding:5px 10px}
+.btn.ghost:hover{border-color:var(--l2);color:var(--t1)}
+.btn.full{width:100%}
+.btn:disabled{opacity:.4;pointer-events:none}
+
+/* avatar */
+.av{width:38px;height:38px;border-radius:50%;background:var(--green-dim);color:var(--green);font-family:var(--fm);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;letter-spacing:.04em}
+.av.lg{width:52px;height:52px;font-size:16px}
+
+/* gate */
+.gate{display:flex;align-items:center;justify-content:center;min-height:75vh}
+.gbox{background:var(--s1);border:1px solid var(--l1);border-radius:var(--r20);padding:32px;width:100%;max-width:340px;display:flex;flex-direction:column;gap:18px;text-align:center}
+.gbox h2{font-family:var(--fd);font-size:20px;text-transform:uppercase;letter-spacing:.04em}
+.glogo{width:42px;height:42px;background:var(--green);border-radius:var(--r8);margin:0 auto;display:flex;align-items:center;justify-content:center}
+.glogo::before{content:"";width:14px;height:14px;border:3px solid var(--bg);border-radius:3px;transform:rotate(15deg);display:block}
+
+/* member card */
+.mcard{background:var(--s1);border:1px solid var(--l1);border-radius:var(--r12);overflow:hidden;margin-bottom:10px}
+.mhead{display:flex;align-items:flex-start;gap:14px;padding:16px 18px;border-bottom:1px solid var(--l1)}
+.mid{display:flex;align-items:center;gap:11px;flex:1;min-width:0}
+.nedit{font-family:var(--fd);font-size:16px;text-transform:uppercase;letter-spacing:.03em;background:transparent;border:1px solid transparent;border-radius:var(--r4);padding:3px 5px;color:var(--t1);width:100%;transition:border-color .15s,background .15s;outline:none}
+.nedit:hover,.nedit:focus{border-color:var(--l2);background:var(--s2)}
+
+/* routine section */
+.reditor{padding:16px 18px}
+.rrow{display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--l1);border-radius:var(--r8);padding:7px 10px;font-size:12px;margin-bottom:6px}
+.rdot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.rday{font-family:var(--fm);font-size:10px;font-weight:700;color:var(--t2);width:26px;flex-shrink:0}
+.rtime{font-family:var(--fm);font-size:10px;color:var(--t2);white-space:nowrap}
+.rtitle{flex:1;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* day pills */
+.dpills{display:flex;gap:5px;flex-wrap:wrap}
+.dpill{width:32px;height:32px;border-radius:50%;border:1px solid var(--l2);background:var(--s3);color:var(--t2);font-size:10px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-family:var(--fm)}
+.dpill.on{background:var(--green-dim);border-color:var(--green);color:var(--green)}
+
+/* color swatches */
+.cswatches{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:4px}
+.cswatch{width:26px;height:26px;border-radius:50%;border:2.5px solid transparent;cursor:pointer;transition:transform .12s,border-color .12s;outline:none}
+.cswatch:hover{transform:scale(1.1)}
+.cswatch.on{border-color:#fff;transform:scale(1.17)}
+.clabel{font-size:11px;color:var(--t2);font-style:italic;margin-top:6px}
+
+/* modal */
+.moverlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px;opacity:0;pointer-events:none;transition:opacity .18s}
+.moverlay.open{opacity:1;pointer-events:all}
+.mbox{background:var(--s1);border:1px solid var(--l2);border-radius:var(--r20);padding:22px;width:100%;max-width:420px;transform:translateY(8px);transition:transform .18s;max-height:90vh;overflow-y:auto}
+.moverlay.open .mbox{transform:translateY(0)}
+.mhead2{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.mhead2 h3{font-family:var(--fd);font-size:17px;text-transform:uppercase;letter-spacing:.04em}
+.mclose{width:28px;height:28px;background:var(--s2);border:1px solid var(--l2);border-radius:50%;color:var(--t2);font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.mclose:hover{color:var(--t1)}
+.mfoot{display:flex;gap:10px;margin-top:18px}
+
+/* toast */
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--s3);border:1px solid var(--l2);border-radius:var(--rfull);padding:8px 18px;font-size:13px;font-weight:500;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap;z-index:9999}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* empty / utils */
+.empty{text-align:center;padding:32px 16px;color:var(--t2);font-size:13px;border:1px dashed var(--l2);border-radius:var(--r12)}
+.muted{color:var(--t2);font-size:13px}
+.gap8{display:flex;gap:8px;align-items:center}
+
+@media(max-width:600px){.frow{flex-direction:column}.mhead{flex-direction:column}}
 </style>
 </head>
 <body>
+<div class="page">
 
-<div class="wrap narrow">
-
-  <header class="top">
-    <div class="brand-row">
-      <span class="brand-mark"></span>
-      <span class="brand-name">Gestão Fitness Brasil</span>
-      <a class="brand-link" href="index.html">← Rotinas da equipe</a>
-    </div>
-    <h1 class="title">Painel <span class="accent">Admin</span></h1>
-  </header>
-
-  <!-- Tela de senha -->
-  <div class="gate" id="gate">
-    <div class="gate-box">
-      <span class="brand-mark" style="margin:0 auto 10px; display:block;"></span>
-      <h2>Acesso restrito</h2>
+  <!-- GATE -->
+  <div id="gate" class="gate">
+    <div class="gbox">
+      <div class="glogo"></div>
+      <div>
+        <p style="font-family:var(--fm);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--t2);margin-bottom:4px">Gestão Fitness Brasil</p>
+        <h2>Acesso admin</h2>
+      </div>
       <div class="field">
         <label>Senha</label>
-        <input type="password" id="password-input" placeholder="••••••••" />
+        <input type="password" id="pwd" placeholder="••••••••"/>
       </div>
-      <button class="btn full" id="login-btn">Entrar</button>
+      <button class="btn pri full" id="loginBtn">Entrar</button>
     </div>
   </div>
 
-  <!-- Painel (some até a senha ser confirmada) -->
-  <main id="panel" style="display:none;">
+  <!-- PAINEL -->
+  <main id="panel" style="display:none">
 
-    <h2 class="section-title">Adicionar pessoa</h2>
-    <div class="panel">
-      <div class="field-row">
+    <div class="topbar">
+      <div class="brand">
+        <div class="bmark"></div>
+        <span class="bname">Gestão Fitness Brasil</span>
+      </div>
+      <a class="tback" href="index.html">← Equipe</a>
+    </div>
+
+    <h1 class="ptitle">Painel <span class="hi">Admin</span></h1>
+
+    <!-- ADD MEMBER -->
+    <p class="slabel">Nova pessoa</p>
+    <div class="panel" style="margin-bottom:32px">
+      <div class="frow" style="margin-bottom:11px">
         <div class="field">
           <label>Nome</label>
-          <input type="text" id="new-name" placeholder="Nome completo" />
+          <input type="text" id="newName" placeholder="Nome completo"/>
         </div>
-        <div class="field">
+        <div class="field" style="flex:0 0 148px">
           <label>Cargo</label>
-          <select id="new-role"></select>
+          <select id="newRole"></select>
         </div>
       </div>
-      <button class="btn full" id="add-member-btn">Adicionar</button>
+      <button class="btn pri full" id="addMemberBtn">+ Adicionar à equipe</button>
     </div>
 
-    <h2 class="section-title" style="margin-top:40px;">Equipe</h2>
-    <div id="members-list">
-      <p class="muted">Carregando...</p>
-    </div>
+    <!-- MEMBERS -->
+    <p class="slabel">Equipe</p>
+    <div id="membersList"><p class="muted">Carregando...</p></div>
 
   </main>
-
 </div>
 
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/supabase-client.js"></script>
-<script>
-const ADMIN_PASSWORD = "Madodo1*";
+<!-- MODAL BLOCO -->
+<div class="moverlay" id="blockModal">
+  <div class="mbox">
+    <div class="mhead2">
+      <h3>Novo bloco</h3>
+      <button class="mclose" id="modalCloseBtn">✕</button>
+    </div>
 
-function showToast(msg) {
-  const toast = document.getElementById("toast");
-  toast.textContent = msg;
-  toast.classList.add("show");
-  setTimeout(() => toast.classList.remove("show"), 2200);
+    <div class="field" style="margin-bottom:13px">
+      <label>Título</label>
+      <input type="text" id="mbTitle" placeholder="Ex: Prospecção ativa"/>
+    </div>
+
+    <div class="field" style="margin-bottom:13px">
+      <label>Dias da semana</label>
+      <div class="dpills" id="mbDays" style="margin-top:4px">
+        <button type="button" class="dpill" data-d="1">Seg</button>
+        <button type="button" class="dpill" data-d="2">Ter</button>
+        <button type="button" class="dpill" data-d="3">Qua</button>
+        <button type="button" class="dpill" data-d="4">Qui</button>
+        <button type="button" class="dpill" data-d="5">Sex</button>
+        <button type="button" class="dpill" data-d="6">Sáb</button>
+      </div>
+    </div>
+
+    <div class="frow" style="margin-bottom:13px">
+      <div class="field">
+        <label>Início</label>
+        <input type="time" id="mbStart" value="08:00"/>
+      </div>
+      <div class="field">
+        <label>Fim</label>
+        <input type="time" id="mbEnd" value="09:00"/>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Cor / Tipo</label>
+      <div class="cswatches" id="mbColors"></div>
+      <p class="clabel" id="mbColorLabel"></p>
+    </div>
+
+    <div class="mfoot">
+      <button class="btn sec" style="flex:1" id="modalCancelBtn">Cancelar</button>
+      <button class="btn pri" style="flex:1" id="modalSaveBtn">Salvar bloco</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+/* ── Config ── */
+const SUPABASE_URL = "https://SEU_PROJETO.supabase.co";
+const SUPABASE_KEY = "SUA_ANON_KEY";
+const ADMIN_PASS   = "Madodo1*";
+
+const _db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ── Constantes ── */
+const ROLES = [
+  {key:"gestor",label:"Gestor"},{key:"consultor",label:"Consultor"},
+  {key:"atendimento",label:"Atendimento"},{key:"operacional",label:"Operacional"}
+];
+const BLOCK_TYPES  = {prospeccao:"Prospecção",followup:"Follow-up",reuniao:"Reunião",admin:"Admin",treinamento:"Treinamento",outros:"Outros"};
+const BLOCK_COLORS = {prospeccao:"#3ddc68",followup:"#3b82f6",reuniao:"#f97316",admin:"#a855f7",treinamento:"#ec4899",outros:"#6b7280"};
+const DAY_SHORT    = {1:"SEG",2:"TER",3:"QUA",4:"QUI",5:"SEX",6:"SÁB"};
+
+function initials(n){return n.trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("").toUpperCase();}
+function slug(n){return n.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");}
+
+/* ── Toast ── */
+function toast(msg){
+  const el=document.getElementById("toast");
+  el.textContent=msg; el.classList.add("show");
+  setTimeout(()=>el.classList.remove("show"),2200);
 }
 
-/* ---------- Senha ---------- */
-function checkGate() {
-  if (sessionStorage.getItem("gfb_admin_ok") === "1") {
-    document.getElementById("gate").style.display = "none";
-    document.getElementById("panel").style.display = "block";
+/* ── Gate ── */
+function checkGate(){
+  if(sessionStorage.getItem("gfb_admin")==="1"){
+    document.getElementById("gate").style.display="none";
+    document.getElementById("panel").style.display="block";
     initPanel();
   }
 }
+document.getElementById("loginBtn").onclick=()=>{
+  if(document.getElementById("pwd").value===ADMIN_PASS){
+    sessionStorage.setItem("gfb_admin","1"); checkGate();
+  } else toast("Senha incorreta.");
+};
+document.getElementById("pwd").addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("loginBtn").click();});
 
-document.getElementById("login-btn").onclick = () => {
-  const value = document.getElementById("password-input").value;
-  if (value === ADMIN_PASSWORD) {
-    sessionStorage.setItem("gfb_admin_ok", "1");
-    checkGate();
-  } else {
-    showToast("Senha incorreta.");
-  }
+/* ── Modal ── */
+let _modMember=null, _modContainer=null, _selType="prospeccao";
+
+function buildSwatches(){
+  const row=document.getElementById("mbColors"); row.innerHTML="";
+  Object.entries(BLOCK_COLORS).forEach(([type,color])=>{
+    const btn=document.createElement("button");
+    btn.type="button"; btn.className="cswatch"+(type===_selType?" on":"");
+    btn.style.background=color; btn.dataset.type=type;
+    btn.title=BLOCK_TYPES[type]; btn.setAttribute("aria-label",BLOCK_TYPES[type]);
+    btn.onclick=()=>{
+      document.querySelectorAll("#mbColors .cswatch").forEach(s=>s.classList.remove("on"));
+      btn.classList.add("on"); _selType=type;
+      document.getElementById("mbColorLabel").textContent=BLOCK_TYPES[type];
+    };
+    row.appendChild(btn);
+  });
+  document.getElementById("mbColorLabel").textContent=BLOCK_TYPES[_selType];
+}
+function openModal(memberId,container){
+  _modMember=memberId; _modContainer=container; _selType="prospeccao";
+  document.getElementById("mbTitle").value="";
+  document.getElementById("mbStart").value="08:00";
+  document.getElementById("mbEnd").value="09:00";
+  document.querySelectorAll("#mbDays .dpill").forEach(p=>p.classList.remove("on"));
+  buildSwatches();
+  document.getElementById("blockModal").classList.add("open");
+  setTimeout(()=>document.getElementById("mbTitle").focus(),120);
+}
+function closeModal(){
+  document.getElementById("blockModal").classList.remove("open");
+  _modMember=null; _modContainer=null;
+}
+document.getElementById("modalCloseBtn").onclick=closeModal;
+document.getElementById("modalCancelBtn").onclick=closeModal;
+document.getElementById("blockModal").addEventListener("click",e=>{if(e.target===document.getElementById("blockModal"))closeModal();});
+
+document.querySelectorAll("#mbDays .dpill").forEach(p=>{p.onclick=()=>p.classList.toggle("on");});
+
+document.getElementById("modalSaveBtn").onclick=async()=>{
+  const title=document.getElementById("mbTitle").value.trim();
+  const start=document.getElementById("mbStart").value;
+  const end=document.getElementById("mbEnd").value;
+  const days=[...document.querySelectorAll("#mbDays .dpill.on")].map(p=>parseInt(p.dataset.d));
+  if(!title){toast("Digite o título.");return;}
+  if(!days.length){toast("Selecione ao menos um dia.");return;}
+  if(end<=start){toast("Fim deve ser depois do início.");return;}
+  const btn=document.getElementById("modalSaveBtn"); btn.disabled=true;
+  try{
+    for(const day of days){
+      await _db.from("routine_blocks").insert([{team_member_id:_modMember,day_of_week:day,start_time:start,end_time:end,title,block_type:_selType}]);
+    }
+    toast(`Bloco${days.length>1?"s":""} salvo${days.length>1?"s":""}!`);
+    closeModal();
+    if(_modContainer)await refreshBlocks(_modMember,_modContainer);
+  }catch(e){toast("Erro: "+e.message);}
+  finally{btn.disabled=false;}
 };
 
-document.getElementById("password-input").addEventListener("keydown", e => {
-  if (e.key === "Enter") document.getElementById("login-btn").click();
-});
-
-/* ---------- Painel ---------- */
-function initPanel() {
-  document.getElementById("new-role").innerHTML = ROLES.map(r => `<option value="${r.key}">${r.label}</option>`).join("");
-
-  document.getElementById("add-member-btn").onclick = async () => {
-    const name = document.getElementById("new-name").value.trim();
-    const role = document.getElementById("new-role").value;
-    if (!name) { showToast("Digite o nome da pessoa."); return; }
-
-    try {
-      await createTeamMember({ name, role });
-      document.getElementById("new-name").value = "";
-      showToast("Pessoa adicionada!");
-      loadMembers();
-    } catch (err) {
-      showToast("Erro ao adicionar: " + (err.message || err));
-    }
+/* ── Panel ── */
+function initPanel(){
+  document.getElementById("newRole").innerHTML=ROLES.map(r=>`<option value="${r.key}">${r.label}</option>`).join("");
+  document.getElementById("addMemberBtn").onclick=async()=>{
+    const name=document.getElementById("newName").value.trim();
+    const role=document.getElementById("newRole").value;
+    if(!name){toast("Digite o nome.");return;}
+    try{
+      await _db.from("team_members").insert([{name,role,initials:initials(name),slug:slug(name)}]);
+      document.getElementById("newName").value="";
+      toast("Pessoa adicionada!"); loadMembers();
+    }catch(e){toast("Erro: "+e.message);}
   };
-
   loadMembers();
 }
 
-async function loadMembers() {
-  const list = document.getElementById("members-list");
-  list.innerHTML = `<p class="muted">Carregando...</p>`;
-
-  let members;
-  try {
-    members = await fetchTeamMembers();
-  } catch (err) {
-    list.innerHTML = `<div class="empty-state">Não foi possível conectar ao Supabase.<br><span class="muted">${err.message || err}</span><br><br>Verifique <code>SUPABASE_URL</code> e <code>SUPABASE_ANON_KEY</code> em <code>assets/supabase-client.js</code> e se o script de <code>schema.sql</code> foi executado.</div>`;
-    return;
-  }
-
-  if (members.length === 0) {
-    list.innerHTML = `<div class="empty-state">Nenhuma pessoa cadastrada ainda.</div>`;
-    return;
-  }
-
-  list.innerHTML = "";
-  for (const member of members) {
-    list.appendChild(await buildMemberCard(member));
-  }
+async function loadMembers(){
+  const list=document.getElementById("membersList");
+  list.innerHTML=`<p class="muted">Carregando...</p>`;
+  const{data,error}=await _db.from("team_members").select("*").order("name");
+  if(error||!data){list.innerHTML=`<div class="empty">Erro ao carregar.</div>`;return;}
+  if(!data.length){list.innerHTML=`<div class="empty">Nenhuma pessoa cadastrada ainda.</div>`;return;}
+  list.innerHTML="";
+  for(const m of data)list.appendChild(await buildCard(m));
 }
 
-async function buildMemberCard(member) {
-  const card = document.createElement("div");
-  card.className = "member-card";
+async function buildCard(m){
+  const card=document.createElement("div");
+  card.className="mcard";
 
-  const head = document.createElement("div");
-  head.className = "member-head";
+  /* head */
+  const head=document.createElement("div"); head.className="mhead";
+  const mid=document.createElement("div"); mid.className="mid";
 
-  const idBox = document.createElement("div");
-  idBox.className = "member-id";
-  idBox.style.flex = "1";
+  const av=document.createElement("div"); av.className="av"; av.textContent=m.initials;
 
-  const avatar = document.createElement("div");
-  avatar.className = "avatar";
-  avatar.textContent = member.initials;
+  const meta=document.createElement("div"); meta.style.flex="1"; meta.style.minWidth="0";
 
-  const fields = document.createElement("div");
-  fields.style.flex = "1";
-
-  const nameInput = document.createElement("input");
-  nameInput.className = "name-input";
-  nameInput.value = member.name;
-  nameInput.onblur = async () => {
-    const newName = nameInput.value.trim();
-    if (!newName || newName === member.name) return;
-    await updateTeamMember(member.id, { name: newName, initials: initialsFromName(newName) });
-    member.name = newName;
-    showToast("Nome atualizado.");
+  const ne=document.createElement("input"); ne.className="nedit"; ne.value=m.name;
+  ne.onblur=async()=>{
+    const n=ne.value.trim(); if(!n||n===m.name)return;
+    await _db.from("team_members").update({name:n,initials:initials(n)}).eq("id",m.id);
+    m.name=n; av.textContent=initials(n); toast("Nome atualizado.");
   };
 
-  const roleSelect = document.createElement("select");
-  roleSelect.innerHTML = ROLES.map(r => `<option value="${r.key}" ${r.key === member.role ? "selected" : ""}>${r.label}</option>`).join("");
-  roleSelect.onchange = async () => {
-    await updateTeamMember(member.id, { role: roleSelect.value });
-    member.role = roleSelect.value;
-    showToast("Cargo atualizado.");
+  const row2=document.createElement("div"); row2.style.cssText="display:flex;align-items:center;gap:7px;margin-top:5px;";
+  const rs=document.createElement("select"); rs.style.cssText="width:auto;padding:4px 26px 4px 7px;font-size:12px;background:#1a1e1a;border:1px solid #2f342f;border-radius:6px;color:#e8ede8;appearance:none;";
+  rs.innerHTML=ROLES.map(r=>`<option value="${r.key}"${r.key===m.role?" selected":""}>${r.label}</option>`).join("");
+  rs.onchange=async()=>{await _db.from("team_members").update({role:rs.value}).eq("id",m.id);toast("Cargo atualizado.");};
+
+  const cb=document.createElement("button"); cb.className="btn ghost"; cb.textContent="Copiar link";
+  cb.onclick=()=>{
+    const link=`${location.origin}${location.pathname.replace("admin.html","")}agenda.html?p=${m.slug}`;
+    navigator.clipboard.writeText(link); toast("Link copiado!");
   };
+  row2.appendChild(rs); row2.appendChild(cb);
+  meta.appendChild(ne); meta.appendChild(row2);
+  mid.appendChild(av); mid.appendChild(meta);
 
-  fields.appendChild(nameInput);
-  fields.appendChild(roleSelect);
-
-  idBox.appendChild(avatar);
-  idBox.appendChild(fields);
-
-  const actions = document.createElement("div");
-  actions.style.display = "flex";
-  actions.style.flexDirection = "column";
-  actions.style.gap = "8px";
-
-  const link = `${location.origin}${location.pathname.replace("admin.html","")}agenda.html?p=${member.slug}`;
-
-  const copyBtn = document.createElement("button");
-  copyBtn.className = "btn secondary";
-  copyBtn.textContent = "Copiar link da agenda";
-  copyBtn.onclick = () => {
-    navigator.clipboard.writeText(link);
-    showToast("Link copiado: " + link);
+  const del=document.createElement("button"); del.className="btn dan"; del.textContent="Excluir";
+  del.onclick=async()=>{
+    if(!confirm(`Excluir ${m.name}?`))return;
+    await _db.from("team_members").delete().eq("id",m.id);
+    toast("Excluído."); loadMembers();
   };
-
-  const delBtn = document.createElement("button");
-  delBtn.className = "btn danger";
-  delBtn.textContent = "Excluir pessoa";
-  delBtn.onclick = async () => {
-    if (!confirm(`Excluir ${member.name}? Isso também remove a rotina fixa e os convites dessa pessoa.`)) return;
-    await deleteTeamMember(member.id);
-    showToast("Pessoa excluída.");
-    loadMembers();
-  };
-
-  actions.appendChild(copyBtn);
-  actions.appendChild(delBtn);
-
-  head.appendChild(idBox);
-  head.appendChild(actions);
+  head.appendChild(mid); head.appendChild(del);
   card.appendChild(head);
 
-  // ---------- Rotina fixa ----------
-  const editor = document.createElement("div");
-  editor.className = "routine-editor";
+  /* routine */
+  const ed=document.createElement("div"); ed.className="reditor";
+  const lbl=document.createElement("p"); lbl.className="slabel"; lbl.textContent="Rotina fixa";
+  const blist=document.createElement("div");
+  const ab=document.createElement("button"); ab.className="btn sec"; ab.style.fontSize="12px"; ab.textContent="+ Novo bloco";
+  ab.onclick=()=>openModal(m.id,blist);
+  ed.appendChild(lbl); ed.appendChild(blist); ed.appendChild(ab);
+  card.appendChild(ed);
 
-  const h4 = document.createElement("h4");
-  h4.textContent = "Rotina fixa — clique num horário livre pra adicionar, ou num bloco pra remover";
-  editor.appendChild(h4);
-
-  const legend = document.createElement("div");
-  legend.className = "legend";
-  legend.style.marginBottom = "12px";
-  renderLegend(legend);
-  editor.appendChild(legend);
-
-  const boardContainer = document.createElement("div");
-  editor.appendChild(boardContainer);
-
-  card.appendChild(editor);
-
-  await refreshMemberBoard(member, boardContainer);
-
+  await refreshBlocks(m.id,blist);
   return card;
 }
 
-async function refreshMemberBoard(member, container) {
-  const blocks = await fetchRoutineBlocks(member.id);
-  const todayDay = new Date().getDay();
-
-  container.innerHTML = "";
-  container.appendChild(renderBoard(buildRecurringColumns(groupBlocksByDay(blocks), todayDay), {
-    interactive: true,
-    onSlotClick: (dayKey, startMinutes, x, y) => {
-      openAddBlockPopup(member, dayKey, startMinutes, x, y, () => refreshMemberBoard(member, container));
-    },
-    onBlockClick: (blockId, kind, x, y) => {
-      openDeleteBlockPopup(blockId, x, y, () => refreshMemberBoard(member, container));
-    }
-  }));
-}
-
-/* ---------- Popup: novo bloco da rotina ---------- */
-function openAddBlockPopup(member, dayKey, startMinutes, x, y, onDone) {
-  const startTime = minutesToTime(startMinutes);
-  const defaultDuration = Math.min(60, BOARD_END_HOUR * 60 - startMinutes) || 30;
-
-  const popup = showPopup(x, y, `
-    <h4>Novo bloco</h4>
-    <div class="popup-meta">${DAY_LABELS[parseInt(dayKey, 10)]} · começa às ${startTime}</div>
-    <div class="field">
-      <label>Título</label>
-      <input type="text" id="popup-title" placeholder="Ex: Prospecção ativa" />
-    </div>
-    <div class="field">
-      <label>Duração</label>
-      <select id="popup-duration">${durationOptionsHtml(defaultDuration)}</select>
-    </div>
-    <div class="field">
-      <label>Tipo</label>
-      <select id="popup-type">
-        ${Object.entries(BLOCK_TYPES).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}
-      </select>
-    </div>
-    <div class="popup-actions">
-      <button type="button" class="btn secondary" id="popup-cancel">Cancelar</button>
-      <button type="button" class="btn" id="popup-save">Adicionar</button>
-    </div>
-  `);
-
-  popup.querySelector("#popup-cancel").onclick = closePopup;
-
-  popup.querySelector("#popup-save").onclick = async () => {
-    const title = popup.querySelector("#popup-title").value.trim();
-    if (!title) { showToast("Digite o título do bloco."); return; }
-
-    const duration = parseInt(popup.querySelector("#popup-duration").value, 10);
-    const endMinutes = Math.min(startMinutes + duration, BOARD_END_HOUR * 60 + 60);
-
-    try {
-      await createRoutineBlock({
-        team_member_id: member.id,
-        day_of_week: parseInt(dayKey, 10),
-        start_time: startTime,
-        end_time: minutesToTime(endMinutes),
-        title,
-        block_type: popup.querySelector("#popup-type").value
-      });
-      closePopup();
-      showToast("Bloco adicionado.");
-      onDone();
-    } catch (err) {
-      showToast("Erro: " + (err.message || err));
-    }
-  };
-}
-
-/* ---------- Popup: remover bloco da rotina ---------- */
-function openDeleteBlockPopup(blockId, x, y, onDone) {
-  const popup = showPopup(x, y, `
-    <h4>Remover bloco</h4>
-    <p class="muted" style="font-size:13px; margin:0;">Remover este bloco da rotina fixa?</p>
-    <div class="popup-actions">
-      <button type="button" class="btn secondary" id="popup-cancel">Cancelar</button>
-      <button type="button" class="btn danger" id="popup-delete">Remover</button>
-    </div>
-  `);
-
-  popup.querySelector("#popup-cancel").onclick = closePopup;
-  popup.querySelector("#popup-delete").onclick = async () => {
-    await deleteRoutineBlock(blockId);
-    closePopup();
-    showToast("Bloco removido.");
-    onDone();
-  };
+async function refreshBlocks(memberId,container){
+  container.innerHTML="";
+  const{data}=await _db.from("routine_blocks").select("*").eq("team_member_id",memberId).order("day_of_week").order("start_time");
+  if(!data||!data.length){
+    container.innerHTML=`<p class="muted" style="margin-bottom:10px;font-size:12px;">Nenhum bloco ainda.</p>`;return;
+  }
+  data.forEach(b=>{
+    const row=document.createElement("div"); row.className="rrow";
+    const dot=document.createElement("span"); dot.className="rdot"; dot.style.background=BLOCK_COLORS[b.block_type]||"#6b7280";
+    const day=document.createElement("span"); day.className="rday"; day.textContent=DAY_SHORT[b.day_of_week]||"—";
+    const time=document.createElement("span"); time.className="rtime"; time.textContent=`${b.start_time.slice(0,5)}–${b.end_time.slice(0,5)}`;
+    const title=document.createElement("span"); title.className="rtitle"; title.textContent=b.title;
+    const del=document.createElement("button"); del.className="btn dan"; del.style.marginLeft="auto"; del.textContent="Remover";
+    del.onclick=async()=>{await _db.from("routine_blocks").delete().eq("id",b.id);refreshBlocks(memberId,container);};
+    row.appendChild(dot);row.appendChild(day);row.appendChild(time);row.appendChild(title);row.appendChild(del);
+    container.appendChild(row);
+  });
 }
 
 checkGate();
 </script>
-
 </body>
 </html>
