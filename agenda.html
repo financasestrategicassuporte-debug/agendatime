@@ -114,6 +114,16 @@ textarea{resize:vertical}
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--s3);border:1px solid var(--l2);border-radius:var(--rfull);padding:8px 18px;font-size:13px;font-weight:500;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap;z-index:9999}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+/* View Controls */
+.view-controls{display:flex;gap:8px;margin-bottom:20px;justify-content:center}
+.view-btn{padding:6px 14px;border-radius:var(--rfull);font-size:12px;font-weight:600;background:var(--s2);color:var(--t2);border:1px solid var(--l2);cursor:pointer}
+.view-btn.active{background:var(--green);color:var(--bg);border-color:var(--green)}
+
+/* Search */
+.search-bar{margin-bottom:20px;position:relative}
+.search-bar input{padding-left:35px}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--t3)}
+
 /* empty / utils */
 .empty{text-align:center;padding:32px 16px;color:var(--t2);font-size:13px;border:1px dashed var(--l2);border-radius:var(--r12)}
 .muted{color:var(--t2);font-size:13px}
@@ -131,6 +141,18 @@ textarea{resize:vertical}
     </div>
     <a class="tback" href="index.html">← Equipe</a>
   </div>
+  
+  <div class="search-bar">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="globalSearch" placeholder="Pesquisar eventos por título ou participante..."/>
+  </div>
+
+  <div class="view-controls">
+    <button class="view-btn active" data-view="week">Semana</button>
+    <button class="view-btn" data-view="month">Mês</button>
+    <button class="view-btn" data-view="list">Agenda</button>
+  </div>
+
   <main id="content"><p class="muted">Carregando...</p></main>
 </div>
 
@@ -140,9 +162,11 @@ textarea{resize:vertical}
 <div class="moverlay" id="evModal">
   <div class="mbox">
     <div class="mhead2">
-      <h3>Novo evento</h3>
+      <h3 id="modalTitle">Novo evento</h3>
       <button class="mclose" id="evClose">✕</button>
     </div>
+
+    <input type="hidden" id="evId"/>
 
     <div class="field" style="margin-bottom:13px">
       <label>Título</label>
@@ -154,19 +178,47 @@ textarea{resize:vertical}
         <label>Data</label>
         <input type="date" id="evDate"/>
       </div>
-      <div class="field">
+      <div class="field" id="startField">
         <label>Início</label>
         <input type="time" id="evStart" value="09:00"/>
       </div>
-      <div class="field">
+      <div class="field" id="endField">
         <label>Fim</label>
         <input type="time" id="evEnd" value="10:00"/>
       </div>
     </div>
 
+    <div class="frow" style="margin-bottom:13px">
+      <div class="field">
+        <label class="cbpill" style="border:none;padding:0">
+          <input type="checkbox" id="evAllDay"/> Dia Inteiro
+        </label>
+      </div>
+      <div class="field">
+        <label class="cbpill" style="border:none;padding:0">
+          <input type="checkbox" id="evPrivate"/> Privado
+        </label>
+      </div>
+    </div>
+
+    <div class="field" style="margin-bottom:13px">
+      <label>Recorrência</label>
+      <select id="evRecurrence">
+        <option value="none">Não se repete</option>
+        <option value="daily">Diário</option>
+        <option value="weekly">Semanal</option>
+        <option value="monthly">Mensal</option>
+      </select>
+    </div>
+
+    <div class="field" style="margin-bottom:13px">
+      <label>Localização</label>
+      <input type="text" id="evLocation" placeholder="Sala, link do Zoom..."/>
+    </div>
+
     <div class="field" style="margin-bottom:13px">
       <label>Descrição <span style="text-transform:none;font-weight:400;color:var(--t2)">(opcional)</span></label>
-      <textarea id="evDesc" rows="2" placeholder="Link de chamada, pauta..."></textarea>
+      <textarea id="evDesc" rows="2" placeholder="Pauta da reunião..."></textarea>
     </div>
 
     <div class="field" style="margin-bottom:13px">
@@ -193,13 +245,14 @@ textarea{resize:vertical}
 
     <div class="mfoot">
       <button class="btn sec" style="flex:1" id="evCancel">Cancelar</button>
-      <button class="btn pri" style="flex:1" id="evSave">Criar evento</button>
+      <button class="btn pri" style="flex:1" id="evSave">Salvar</button>
     </div>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
+// CONFIGURAÇÃO SUPABASE (Substitua pelas suas chaves)
 const SUPABASE_URL = "https://SEU_PROJETO.supabase.co";
 const SUPABASE_KEY = "SUA_ANON_KEY";
 const _db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -212,13 +265,13 @@ const BLOCK_BG     = {prospeccao:"rgba(61,220,104,.13)",followup:"rgba(59,130,24
 const DAY_SHORT    = {1:"SEG",2:"TER",3:"QUA",4:"QUI",5:"SEX",6:"SÁB"};
 
 function initials(n){return n.trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("").toUpperCase();}
-function slugFromName(n){return n.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");}
+function slugFromName(n){return n.toLowerCase().normalize("NFD").replace(/[\u0300//u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");}
 function fmtDate(iso){const[y,m,d]=iso.split("-");return`${d}/${m}/${y}`;}
 function fmtDateDisplay(iso){const d=new Date(iso+"T00:00:00");const wd=new Intl.DateTimeFormat("pt-BR",{weekday:"short"}).format(d).replace(".","").toUpperCase();return`${wd} · ${fmtDate(iso)}`;}
 
 function toast(msg){const el=document.getElementById("toast");el.textContent=msg;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),2200);}
 
-let MEMBER=null, ALL_MEMBERS=[];
+let MEMBER=null, ALL_MEMBERS=[], CURRENT_VIEW="week", SEARCH_QUERY="", ALL_EVENTS=[];
 
 async function init(){
   const slug=new URLSearchParams(location.search).get("p");
@@ -233,11 +286,49 @@ async function init(){
   document.title=`${MEMBER.name} · Agenda · GFB`;
   const{data:members}=await _db.from("team_members").select("*").order("name");
   ALL_MEMBERS=members||[];
-  content.innerHTML="";
-  renderHeader(); await renderRoutine(); await renderEvents(); initModal();
+  
+  initUI();
+  initModal();
+  render();
 }
 
-/* header */
+function initUI(){
+  document.querySelectorAll(".view-btn").forEach(btn=>{
+    btn.onclick=()=>{
+      document.querySelectorAll(".view-btn").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      CURRENT_VIEW=btn.dataset.view;
+      render();
+    };
+  });
+
+  document.getElementById("globalSearch").oninput=(e)=>{
+    SEARCH_QUERY=e.target.value.toLowerCase();
+    render();
+  };
+
+  document.getElementById("evAllDay").onchange=(e)=>{
+    const display = e.target.checked ? "none" : "flex";
+    document.getElementById("startField").style.display = display;
+    document.getElementById("endField").style.display = display;
+  };
+}
+
+async function render(){
+  const content=document.getElementById("content");
+  content.innerHTML="";
+  renderHeader();
+  
+  if(CURRENT_VIEW === "week") {
+    await renderRoutine();
+    await renderEvents();
+  } else if(CURRENT_VIEW === "month") {
+    content.innerHTML += `<div class="empty">Visualização Mensal (Em desenvolvimento)</div>`;
+  } else {
+    await renderEvents();
+  }
+}
+
 function renderHeader(){
   const c=document.getElementById("content");
   const wrap=document.createElement("div");
@@ -254,7 +345,6 @@ function renderHeader(){
   wrap.appendChild(id); wrap.appendChild(cp); c.appendChild(wrap);
 }
 
-/* rotina */
 async function renderRoutine(){
   const c=document.getElementById("content");
   const sec=document.createElement("div"); sec.className="sec-block";
@@ -267,12 +357,10 @@ async function renderRoutine(){
     legend.appendChild(item);
   });
   sec.appendChild(legend);
-  const{data:blocks}=await _db.from("routine_blocks").select("*").eq("team_member_id",MEMBER.id).order("day_of_week").order("start_time");
+  const{data:blocks}=await _db.from("routine_blocks").select("*").eq("team_member_id",MEMBER.id);
   const wrap=document.createElement("div"); wrap.className="board-wrap";
   wrap.appendChild(buildBoard(blocks||[], new Date().getDay()));
   sec.appendChild(wrap);
-  const note=document.createElement("p"); note.style.cssText="font-size:11px;color:var(--t3);margin-top:8px"; note.textContent="Rotina gerenciada pelo painel admin.";
-  sec.appendChild(note);
   c.appendChild(sec);
 }
 
@@ -308,13 +396,12 @@ function buildBoard(blocks,todayDay){
   return grid;
 }
 
-/* eventos */
 async function renderEvents(){
   const c=document.getElementById("content");
   const sec=document.createElement("div"); sec.className="sec-block"; sec.id="evSec";
   const head=document.createElement("div"); head.style.cssText="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px";
   const lbl=document.createElement("p"); lbl.className="slabel"; lbl.style.margin="0"; lbl.textContent="Próximos eventos";
-  const ab=document.createElement("button"); ab.className="btn pri"; ab.style.fontSize="12px"; ab.textContent="+ Novo evento"; ab.onclick=openModal;
+  const ab=document.createElement("button"); ab.className="btn pri"; ab.style.fontSize="12px"; ab.textContent="+ Novo evento"; ab.onclick=()=>openModal();
   head.appendChild(lbl); head.appendChild(ab); sec.appendChild(head);
   const list=document.createElement("div"); list.id="evList"; sec.appendChild(list);
   c.appendChild(sec);
@@ -325,19 +412,49 @@ async function refreshEvents(){
   const list=document.getElementById("evList"); if(!list)return;
   list.innerHTML=`<p class="muted">Carregando...</p>`;
   const today=new Date().toISOString().slice(0,10);
+  
   const{data:owned}=await _db.from("events").select("*,team_members!events_created_by_fkey(id,name,initials),event_attendees(team_members(id,name,initials))").eq("created_by",MEMBER.id).gte("event_date",today).order("event_date").order("start_time");
   const{data:invRows}=await _db.from("event_attendees").select("events(*,team_members!events_created_by_fkey(id,name,initials),event_attendees(team_members(id,name,initials)))").eq("team_member_id",MEMBER.id);
+  
   const inv=(invRows||[]).map(r=>r.events).filter(Boolean);
-  const seen=new Set(); const all=[...(owned||[]),...inv].filter(e=>{if(!e||seen.has(e.id))return false;seen.add(e.id);return true;}).filter(e=>e.event_date>=today).sort((a,b)=>a.event_date.localeCompare(b.event_date)||a.start_time.localeCompare(b.start_time));
+  const seen=new Set(); 
+  ALL_EVENTS=[...(owned||[]),...inv].filter(e=>{
+    if(!e||seen.has(e.id))return false;
+    seen.add(e.id);
+    return true;
+  }).filter(e=>e.event_date>=today).sort((a,b)=>a.event_date.localeCompare(b.event_date)||a.start_time.localeCompare(b.start_time));
+
+  let filtered = ALL_EVENTS;
+  if(SEARCH_QUERY) {
+    filtered = ALL_EVENTS.filter(e => {
+      const matchTitle = e.title.toLowerCase().includes(SEARCH_QUERY);
+      const matchParticipants = e.event_attendees?.some(a => a.team_members?.name.toLowerCase().includes(SEARCH_QUERY));
+      return matchTitle || matchParticipants;
+    });
+  }
+
   list.innerHTML="";
-  if(!all.length){list.innerHTML=`<div class="empty">Nenhum evento agendado. Use o botão acima para criar.</div>`;return;}
-  all.forEach(ev=>{
+  if(!filtered.length){list.innerHTML=`<div class="empty">Nenhum evento encontrado.</div>`;return;}
+  
+  filtered.forEach(ev=>{
+    if(ev.is_private && ev.created_by !== MEMBER.id) {
+        // Render private event placeholder
+        const card=document.createElement("div"); card.className="ev-card";
+        card.innerHTML = `<div class="ev-main"><div class="ev-date">${fmtDateDisplay(ev.event_date)}</div><h4>🔒 Evento Privado</h4><p class="muted">Detalhes ocultos</p></div>`;
+        list.appendChild(card);
+        return;
+    }
+
     const card=document.createElement("div"); card.className="ev-card";
     const main=document.createElement("div"); main.className="ev-main";
-    const de=document.createElement("div"); de.className="ev-date"; de.textContent=`${fmtDateDisplay(ev.event_date)} · ${ev.start_time.slice(0,5)}–${ev.end_time.slice(0,5)}`;
+    const timeStr = ev.is_all_day ? "Dia Inteiro" : `${ev.start_time.slice(0,5)}–${ev.end_time.slice(0,5)}`;
+    const de=document.createElement("div"); de.className="ev-date"; de.textContent=`${fmtDateDisplay(ev.event_date)} · ${timeStr}`;
     const ti=document.createElement("h4"); ti.textContent=ev.title;
     main.appendChild(de); main.appendChild(ti);
+    
+    if(ev.location){const l=document.createElement("p"); l.style.color="var(--green)"; l.textContent="📍 " + ev.location; main.appendChild(l);}
     if(ev.description){const p=document.createElement("p");p.textContent=ev.description;main.appendChild(p);}
+    
     const chips=document.createElement("div"); chips.className="chips";
     const isOwner=ev.created_by===MEMBER.id;
     const ownerName=ev.team_members?.name;
@@ -352,23 +469,26 @@ async function refreshEvents(){
       cx.appendChild(ax); cx.append(" "+(isSelf?"Você":a.team_members.name)); chips.appendChild(cx);
     });
     main.appendChild(chips); card.appendChild(main);
-    const side=document.createElement("div"); side.style.flexShrink="0";
+    
+    const side=document.createElement("div"); side.style.cssText="display:flex;flex-direction:column;gap:5px;align-items:flex-end";
     if(isOwner){
+      const eb=document.createElement("button"); eb.className="btn sec"; eb.style.fontSize="11px"; eb.textContent="Editar";
+      eb.onclick=()=>openModal(ev);
       const db=document.createElement("button"); db.className="btn dan"; db.textContent="Excluir";
       db.onclick=async()=>{if(!confirm(`Excluir "${ev.title}"?`))return;await _db.from("event_attendees").delete().eq("event_id",ev.id);await _db.from("events").delete().eq("id",ev.id);toast("Evento excluído.");refreshEvents();};
-      side.appendChild(db);
+      side.appendChild(eb); side.appendChild(db);
     }else{const b=document.createElement("span");b.className="role-tag";b.textContent="Convidado(a)";side.appendChild(b);}
     card.appendChild(side); list.appendChild(card);
   });
 }
 
-/* modal evento */
 function initModal(){
   document.getElementById("npRole").innerHTML=ROLES.map(r=>`<option value="${r.key}">${r.label}</option>`).join("");
   document.getElementById("evClose").onclick=closeModal;
   document.getElementById("evCancel").onclick=closeModal;
   document.getElementById("evModal").addEventListener("click",e=>{if(e.target===document.getElementById("evModal"))closeModal();});
   document.getElementById("toggleNP").onclick=()=>{const b=document.getElementById("npBox");b.style.display=b.style.display==="none"?"block":"none";};
+  
   document.getElementById("addNpBtn").onclick=async()=>{
     const name=document.getElementById("npName").value.trim();
     const role=document.getElementById("npRole").value;
@@ -377,41 +497,89 @@ function initModal(){
     if(created){ALL_MEMBERS.push(created);renderCheckboxes();const cb=document.querySelector(`#evAttendees input[value="${created.id}"]`);if(cb)cb.checked=true;}
     document.getElementById("npName").value=""; document.getElementById("npBox").style.display="none"; toast("Pessoa adicionada!");
   };
+
   document.getElementById("evSave").onclick=async()=>{
+    const id=document.getElementById("evId").value;
     const title=document.getElementById("evTitle").value.trim();
     const date=document.getElementById("evDate").value;
     const start=document.getElementById("evStart").value;
     const end=document.getElementById("evEnd").value;
     const desc=document.getElementById("evDesc").value.trim();
-    if(!title||!date||!start||!end){toast("Preencha título, data e horários.");return;}
-    if(end<=start){toast("Fim deve ser depois do início.");return;}
+    const loc=document.getElementById("evLocation").value.trim();
+    const isAllDay=document.getElementById("evAllDay").checked;
+    const isPrivate=document.getElementById("evPrivate").checked;
+    const recurrence=document.getElementById("evRecurrence").value;
+    
+    if(!title||!date) {toast("Preencha título e data.");return;}
+    if(!isAllDay && (start >= end)) {toast("Fim deve ser depois do início.");return;}
+
     const attIds=[...document.querySelectorAll("#evAttendees input:checked")].map(i=>i.value);
     document.getElementById("evSave").disabled=true;
+    
     try{
-      const{data:ev}=await _db.from("events").insert([{created_by:MEMBER.id,title,description:desc||null,event_date:date,start_time:start,end_time:end}]).select().single();
-      if(attIds.length)await _db.from("event_attendees").insert(attIds.map(id=>({event_id:ev.id,team_member_id:id})));
-      toast("Evento criado!"); closeModal(); refreshEvents();
+      const evData = {
+        title, 
+        description:desc||null, 
+        location:loc||null,
+        event_date:date, 
+        start_time:isAllDay ? "00:00:00" : start, 
+        end_time:isAllDay ? "23:59:59" : end,
+        is_all_day:isAllDay,
+        is_private:isPrivate,
+        recurrence:recurrence
+      };
+
+      let evId = id;
+      if(id) {
+        await _db.from("events").update(evData).eq("id", id);
+        await _db.from("event_attendees").delete().eq("event_id", id);
+      } else {
+        const{data:ev}=await _db.from("events").insert([{...evData, created_by:MEMBER.id}]).select().single();
+        evId = ev.id;
+      }
+      
+      if(attIds.length) await _db.from("event_attendees").insert(attIds.map(uid=>({event_id:evId, team_member_id:uid})));
+      
+      toast(id ? "Evento atualizado!" : "Evento criado!");
+      closeModal();
+      refreshEvents();
     }catch(e){toast("Erro: "+e.message);}
     finally{document.getElementById("evSave").disabled=false;}
   };
 }
-function openModal(){
-  document.getElementById("evTitle").value="";
-  document.getElementById("evDate").value=new Date().toISOString().slice(0,10);
-  document.getElementById("evStart").value="09:00";
-  document.getElementById("evEnd").value="10:00";
-  document.getElementById("evDesc").value="";
+
+function openModal(ev=null){
+  const modalTitle = document.getElementById("modalTitle");
+  document.getElementById("evId").value = ev ? ev.id : "";
+  document.getElementById("evTitle").value = ev ? ev.title : "";
+  document.getElementById("evDate").value = ev ? ev.event_date : new Date().toISOString().slice(0,10);
+  document.getElementById("evStart").value = ev ? ev.start_time.slice(0,5) : "09:00";
+  document.getElementById("evEnd").value = ev ? ev.end_time.slice(0,5) : "10:00";
+  document.getElementById("evDesc").value = ev ? (ev.description || "") : "";
+  document.getElementById("evLocation").value = ev ? (ev.location || "") : "";
+  document.getElementById("evAllDay").checked = ev ? !!ev.is_all_day : false;
+  document.getElementById("evPrivate").checked = ev ? !!ev.is_private : false;
+  document.getElementById("evRecurrence").value = ev ? (ev.recurrence || "none") : "none";
+  
+  modalTitle.textContent = ev ? "Editar Evento" : "Novo Evento";
   document.getElementById("npBox").style.display="none";
-  renderCheckboxes();
+  document.getElementById("evAllDay").dispatchEvent(new Event('change'));
+  
+  renderCheckboxes(ev ? ev.event_attendees?.map(a=>a.team_members.id) : []);
   document.getElementById("evModal").classList.add("open");
   setTimeout(()=>document.getElementById("evTitle").focus(),120);
 }
+
 function closeModal(){document.getElementById("evModal").classList.remove("open");}
-function renderCheckboxes(){
+
+function renderCheckboxes(selectedIds=[]){
   const box=document.getElementById("evAttendees");
   const others=ALL_MEMBERS.filter(m=>m.id!==MEMBER.id);
   if(!others.length){box.innerHTML=`<span class="muted">Nenhum outro membro cadastrado.</span>`;return;}
-  box.innerHTML=others.map(m=>`<label class="cbpill"><input type="checkbox" value="${m.id}"/><span class="av sm">${m.initials}</span>${m.name}<span class="muted" style="margin-left:4px">· ${ROLE_LABELS[m.role]||m.role}</span></label>`).join("");
+  box.innerHTML=others.map(m=>{
+    const checked = selectedIds.includes(m.id) ? "checked" : "";
+    return `<label class="cbpill"><input type="checkbox" value="${m.id}" ${checked}/><span class="av sm">${m.initials}</span>${m.name}<span class="muted" style="margin-left:4px">· ${ROLE_LABELS[m.role]||m.role}</span></label>`;
+  }).join("");
 }
 
 init();
