@@ -7,8 +7,8 @@
       - "Project URL"      → cole em SUPABASE_URL
       - "anon public" key  → cole em SUPABASE_ANON_KEY
    ============================================================= */
-const SUPABASE_URL = "https://SEU-PROJETO.supabase.co";
-const SUPABASE_ANON_KEY = "SUA-CHAVE-ANON-PUBLICA";
+const SUPABASE_URL = "https://vsnfqohptlporesdfrtx.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_BGdjIkL0pTXSOTyIB6wxAg_zlao5meF";
 
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
