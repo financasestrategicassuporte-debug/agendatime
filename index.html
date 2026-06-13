@@ -1,527 +1,161 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Admin · Gestão Fitness Brasil</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet"/>
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#0b0d0b;--s1:#131613;--s2:#1a1e1a;--s3:#222622;
-  --l1:#252925;--l2:#2f342f;--l3:#3a3f3a;
-  --t1:#e8ede8;--t2:#8a938a;--t3:#4a524a;
-  --green:#3ddc68;--green-dim:#0e2a18;
-  --ff:'Inter',sans-serif;--fm:'JetBrains Mono',monospace;--fd:'Anton',sans-serif;
-  --r4:4px;--r8:8px;--r12:12px;--r20:20px;--rfull:999px;
-}
-html{font-size:15px}
-body{font-family:var(--ff);background:var(--bg);color:var(--t1);min-height:100vh;-webkit-font-smoothing:antialiased}
-a{color:inherit;text-decoration:none}
-button{font-family:var(--ff);cursor:pointer}
-input,select,textarea{font-family:var(--ff)}
-
-/* layout */
-.page{max-width:740px;margin:0 auto;padding:0 20px 80px}
-
-/* topbar */
-.topbar{display:flex;align-items:center;gap:12px;padding:16px 0 20px;border-bottom:1px solid var(--l1);margin-bottom:28px}
-.brand{display:flex;align-items:center;gap:9px}
-.bmark{width:26px;height:26px;background:var(--green);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.bmark::before{content:"";width:9px;height:9px;border:2.5px solid var(--bg);border-radius:2px;transform:rotate(15deg);display:block}
-.bname{font-family:var(--fm);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t2)}
-.tback{margin-left:auto;font-size:12px;color:var(--t3);transition:color .15s}
-.tback:hover{color:var(--t1)}
-
-/* headings */
-.ptitle{font-family:var(--fd);font-size:34px;letter-spacing:.01em;text-transform:uppercase;line-height:1;margin-bottom:28px}
-.ptitle .hi{color:var(--green)}
-.slabel{font-family:var(--fm);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--t2);margin-bottom:12px}
-
-/* panel */
-.panel{background:var(--s1);border:1px solid var(--l1);border-radius:var(--r12);padding:18px 20px;margin-bottom:10px}
-
-/* form */
-.field{display:flex;flex-direction:column;gap:6px}
-.field label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--t2)}
-.frow{display:flex;gap:12px}
-.frow .field{flex:1}
-input[type=text],input[type=password],input[type=date],input[type=time],textarea,select{
-  background:var(--s2);border:1px solid var(--l2);border-radius:var(--r8);color:var(--t1);
-  font-size:13px;padding:8px 11px;outline:none;transition:border-color .15s;width:100%
-}
-input:focus,textarea:focus,select:focus{border-color:var(--green)}
-select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a938a' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
-
-/* buttons */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;border-radius:var(--r8);font-size:13px;font-weight:600;border:none;transition:opacity .15s,transform .1s;cursor:pointer}
-.btn:active{transform:scale(.98)}
-.btn.pri{background:var(--green);color:var(--bg)}
-.btn.sec{background:var(--s2);color:var(--t1);border:1px solid var(--l2)}
-.btn.dan{background:transparent;color:#f87171;border:1px solid #2a1111;font-size:12px;padding:5px 10px}
-.btn.dan:hover{background:#160808}
-.btn.ghost{background:transparent;color:var(--t2);border:1px solid transparent;font-size:12px;padding:5px 10px}
-.btn.ghost:hover{border-color:var(--l2);color:var(--t1)}
-.btn.full{width:100%}
-.btn:disabled{opacity:.4;pointer-events:none}
-
-/* avatar */
-.av{width:38px;height:38px;border-radius:50%;background:var(--green-dim);color:var(--green);font-family:var(--fm);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;letter-spacing:.04em}
-.av.lg{width:52px;height:52px;font-size:16px}
-
-/* gate */
-.gate{display:flex;align-items:center;justify-content:center;min-height:75vh}
-.gbox{background:var(--s1);border:1px solid var(--l1);border-radius:var(--r20);padding:32px;width:100%;max-width:340px;display:flex;flex-direction:column;gap:18px;text-align:center}
-.gbox h2{font-family:var(--fd);font-size:20px;text-transform:uppercase;letter-spacing:.04em}
-.glogo{width:42px;height:42px;background:var(--green);border-radius:var(--r8);margin:0 auto;display:flex;align-items:center;justify-content:center}
-.glogo::before{content:"";width:14px;height:14px;border:3px solid var(--bg);border-radius:3px;transform:rotate(15deg);display:block}
-
-/* member card */
-.mcard{background:var(--s1);border:1px solid var(--l1);border-radius:var(--r12);overflow:hidden;margin-bottom:10px}
-.mhead{display:flex;align-items:flex-start;gap:14px;padding:16px 18px;border-bottom:1px solid var(--l1)}
-.mid{display:flex;align-items:center;gap:11px;flex:1;min-width:0}
-.nedit{font-family:var(--fd);font-size:16px;text-transform:uppercase;letter-spacing:.03em;background:transparent;border:1px solid transparent;border-radius:var(--r4);padding:3px 5px;color:var(--t1);width:100%;transition:border-color .15s,background .15s;outline:none}
-.nedit:hover,.nedit:focus{border-color:var(--l2);background:var(--s2)}
-
-/* routine section */
-.reditor{padding:16px 18px}
-.rrow{display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--l1);border-radius:var(--r8);padding:7px 10px;font-size:12px;margin-bottom:6px}
-.rdot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
-.rday{font-family:var(--fm);font-size:10px;font-weight:700;color:var(--t2);width:26px;flex-shrink:0}
-.rtime{font-family:var(--fm);font-size:10px;color:var(--t2);white-space:nowrap}
-.rtitle{flex:1;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-
-/* day pills */
-.dpills{display:flex;gap:5px;flex-wrap:wrap}
-.dpill{width:32px;height:32px;border-radius:50%;border:1px solid var(--l2);background:var(--s3);color:var(--t2);font-size:10px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-family:var(--fm)}
-.dpill.on{background:var(--green-dim);border-color:var(--green);color:var(--green)}
-
-/* color swatches */
-.cswatches{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:4px}
-.cswatch{width:26px;height:26px;border-radius:50%;border:2.5px solid transparent;cursor:pointer;transition:transform .12s,border-color .12s;outline:none}
-.cswatch:hover{transform:scale(1.1)}
-.cswatch.on{border-color:#fff;transform:scale(1.17)}
-.clabel{font-size:11px;color:var(--t2);font-style:italic;margin-top:6px}
-
-/* modal */
-.moverlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px;opacity:0;pointer-events:none;transition:opacity .18s}
-.moverlay.open{opacity:1;pointer-events:all}
-.mbox{background:var(--s1);border:1px solid var(--l2);border-radius:var(--r20);padding:22px;width:100%;max-width:420px;transform:translateY(8px);transition:transform .18s;max-height:90vh;overflow-y:auto}
-.moverlay.open .mbox{transform:translateY(0)}
-.mhead2{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
-.mhead2 h3{font-family:var(--fd);font-size:17px;text-transform:uppercase;letter-spacing:.04em}
-.mclose{width:28px;height:28px;background:var(--s2);border:1px solid var(--l2);border-radius:50%;color:var(--t2);font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer}
-.mclose:hover{color:var(--t1)}
-.mfoot{display:flex;gap:10px;margin-top:18px}
-
-/* toast */
-.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--s3);border:1px solid var(--l2);border-radius:var(--rfull);padding:8px 18px;font-size:13px;font-weight:500;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap;z-index:9999}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-
-/* empty / utils */
-.empty{text-align:center;padding:32px 16px;color:var(--t2);font-size:13px;border:1px dashed var(--l2);border-radius:var(--r12)}
-.muted{color:var(--t2);font-size:13px}
-.gap8{display:flex;gap:8px;align-items:center}
-
-@media(max-width:600px){.frow{flex-direction:column}.mhead{flex-direction:column}}
-</style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Rotinas da Equipe · Gestão Fitness Brasil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
-<div class="page">
 
-  <!-- GATE -->
-  <div id="gate" class="gate">
-    <div class="gbox">
-      <div class="glogo"></div>
-      <div>
-        <p style="font-family:var(--fm);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--t2);margin-bottom:4px">Gestão Fitness Brasil</p>
-        <h2>Acesso admin</h2>
-      </div>
-      <div class="field">
-        <label>Senha</label>
-        <input type="password" id="pwd" placeholder="••••••••"/>
-      </div>
-      <button class="btn pri full" id="loginBtn">Entrar</button>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand-row">
+      <span class="brand-mark"></span>
+      <span class="brand-name">Gestão Fitness Brasil</span>
+      <a class="brand-link" href="admin.html">Admin</a>
     </div>
-  </div>
-
-  <!-- PAINEL -->
-  <main id="panel" style="display:none">
-
-    <div class="topbar">
-      <div class="brand">
-        <div class="bmark"></div>
-        <span class="bname">Gestão Fitness Brasil</span>
-      </div>
-      <a class="tback" href="index.html">← Equipe</a>
+    <h1 class="title">Rotinas da <span class="accent">Equipe</span></h1>
+    <div class="top-meta">
+      <p>Visão semanal das rotinas de SDR, Closer e Customer Success. Clique em "Ver agenda" para abrir a agenda individual de cada pessoa.</p>
+      <span id="now-display"></span>
     </div>
+  </header>
 
-    <h1 class="ptitle">Painel <span class="hi">Admin</span></h1>
+  <div class="legend" id="legend"></div>
 
-    <div id="diag" style="display:none; margin-bottom:20px; padding:12px 14px; border-radius:10px; font-family:var(--fm); font-size:12px; white-space:pre-wrap; word-break:break-word;"></div>
-
-    <!-- ADD MEMBER -->
-    <p class="slabel">Nova pessoa</p>
-    <div class="panel" style="margin-bottom:32px">
-      <div class="frow" style="margin-bottom:11px">
-        <div class="field">
-          <label>Nome</label>
-          <input type="text" id="newName" placeholder="Nome completo"/>
-        </div>
-        <div class="field" style="flex:0 0 148px">
-          <label>Cargo</label>
-          <select id="newRole"></select>
-        </div>
-      </div>
-      <button class="btn pri full" id="addMemberBtn">+ Adicionar à equipe</button>
-    </div>
-
-    <!-- MEMBERS -->
-    <p class="slabel">Equipe</p>
-    <div id="membersList"><p class="muted">Carregando...</p></div>
-
+  <main id="content">
+    <p class="muted">Carregando...</p>
   </main>
+
+  <footer>
+    <span>Gestão Fitness Brasil — rotinas internas</span>
+    <span>Painel administrativo: <a href="admin.html">/admin.html</a></span>
+  </footer>
+
 </div>
 
-<div class="toast" id="toast"></div>
-
-<!-- MODAL BLOCO -->
-<div class="moverlay" id="blockModal">
-  <div class="mbox">
-    <div class="mhead2">
-      <h3>Novo bloco</h3>
-      <button class="mclose" id="modalCloseBtn">✕</button>
-    </div>
-
-    <div class="field" style="margin-bottom:13px">
-      <label>Título</label>
-      <input type="text" id="mbTitle" placeholder="Ex: Prospecção ativa"/>
-    </div>
-
-    <div class="field" style="margin-bottom:13px">
-      <label>Dias da semana</label>
-      <div class="dpills" id="mbDays" style="margin-top:4px">
-        <button type="button" class="dpill" data-d="1">Seg</button>
-        <button type="button" class="dpill" data-d="2">Ter</button>
-        <button type="button" class="dpill" data-d="3">Qua</button>
-        <button type="button" class="dpill" data-d="4">Qui</button>
-        <button type="button" class="dpill" data-d="5">Sex</button>
-        <button type="button" class="dpill" data-d="6">Sáb</button>
-      </div>
-    </div>
-
-    <div class="frow" style="margin-bottom:13px">
-      <div class="field">
-        <label>Início</label>
-        <input type="time" id="mbStart" value="08:00"/>
-      </div>
-      <div class="field">
-        <label>Fim</label>
-        <input type="time" id="mbEnd" value="09:00"/>
-      </div>
-    </div>
-
-    <div class="field">
-      <label>Cor / Tipo</label>
-      <div class="cswatches" id="mbColors"></div>
-      <p class="clabel" id="mbColorLabel"></p>
-    </div>
-
-    <div class="mfoot">
-      <button class="btn sec" style="flex:1" id="modalCancelBtn">Cancelar</button>
-      <button class="btn pri" style="flex:1" id="modalSaveBtn">Salvar bloco</button>
-    </div>
-  </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/supabase-client.js"></script>
+<script src="assets/board.js"></script>
 <script>
-/* ── Config ── */
-const SUPABASE_URL = "https://vsnfqohptlporesdfrtx.supabase.co";
-const SUPABASE_KEY = "sb_publishable_BGdjIkL0pTXSOTyIB6wxAg_zlao5meF";
-const ADMIN_PASS   = "Madodo1*";
+function updateNowDisplay() {
+  const now = new Date();
+  const formatted = new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "numeric", month: "long" }).format(now);
+  const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  document.getElementById("now-display").textContent = formatted + " · " + time;
+}
 
-const _db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+function memberFirstName(name) {
+  return name.split(" ")[0];
+}
 
-/* ── Constantes ──
-   Precisam bater com o CHECK constraint do schema.sql e com
-   ROLE_LABELS / BLOCK_TYPES usados em index.html e agenda.html */
-const ROLES = [
-  {key:"sdr",label:"SDR"},
-  {key:"closer",label:"Closer"},
-  {key:"customer_success",label:"Customer Success"}
-];
-const BLOCK_TYPES  = {prospeccao:"Prospecção",ligacoes:"Ligações / Atendimento",followup:"Follow-up",conteudo:"Conteúdo",reuniao:"Reunião interna",pausa:"Pausa"};
-const BLOCK_COLORS = {prospeccao:"#61b42d",ligacoes:"#f2c811",followup:"#0e7d3a",conteudo:"#a9d979",reuniao:"#4d564f",pausa:"transparent"};
-const DAY_SHORT    = {1:"SEG",2:"TER",3:"QUA",4:"QUI",5:"SEX",6:"SÁB"};
+async function init() {
+  renderLegend(document.getElementById("legend"));
+  updateNowDisplay();
+  setInterval(updateNowDisplay, 60000);
 
-function initials(n){return n.trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("").toUpperCase();}
-function slug(n){return n.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");}
+  const content = document.getElementById("content");
 
-/* garante slug único, adicionando -2, -3... se já existir */
-async function uniqueSlug(base){
-  base = base || "membro";
-  let candidate = base, n = 2;
-  while(true){
-    const {data,error} = await _db.from("team_members").select("id").eq("slug",candidate).maybeSingle();
-    if(error) throw error;
-    if(!data) return candidate;
-    candidate = `${base}-${n++}`;
+  let members, blocks;
+  try {
+    [members, blocks] = await Promise.all([fetchTeamMembers(), fetchAllRoutineBlocks()]);
+  } catch (err) {
+    content.innerHTML = `<div class="empty-state">Não foi possível carregar os dados. Verifique a configuração do Supabase em <code>assets/supabase-client.js</code>.<br><span class="muted">${err.message || err}</span></div>`;
+    return;
   }
-}
 
-/* ── Toast ── */
-function toast(msg){
-  const el=document.getElementById("toast");
-  el.textContent=msg; el.classList.add("show");
-  setTimeout(()=>el.classList.remove("show"),2200);
-}
+  content.innerHTML = "";
 
-/* ── Gate ── */
-function checkGate(){
-  if(sessionStorage.getItem("gfb_admin")==="1"){
-    document.getElementById("gate").style.display="none";
-    document.getElementById("panel").style.display="block";
-    initPanel();
-  }
-}
-document.getElementById("loginBtn").onclick=()=>{
-  if(document.getElementById("pwd").value===ADMIN_PASS){
-    sessionStorage.setItem("gfb_admin","1"); checkGate();
-  } else toast("Senha incorreta.");
-};
-document.getElementById("pwd").addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("loginBtn").click();});
-
-/* ── Modal ── */
-let _modMember=null, _modContainer=null, _selType="prospeccao";
-
-function buildSwatches(){
-  const row=document.getElementById("mbColors"); row.innerHTML="";
-  Object.entries(BLOCK_COLORS).forEach(([type,color])=>{
-    const btn=document.createElement("button");
-    btn.type="button"; btn.className="cswatch"+(type===_selType?" on":"");
-    if(color==="transparent"){
-      btn.style.background="transparent";
-      btn.style.border="2px dashed var(--t2)";
-    } else {
-      btn.style.background=color;
-    }
-    btn.dataset.type=type;
-    btn.title=BLOCK_TYPES[type]; btn.setAttribute("aria-label",BLOCK_TYPES[type]);
-    btn.onclick=()=>{
-      document.querySelectorAll("#mbColors .cswatch").forEach(s=>s.classList.remove("on"));
-      btn.classList.add("on"); _selType=type;
-      document.getElementById("mbColorLabel").textContent=BLOCK_TYPES[type];
-    };
-    row.appendChild(btn);
+  const blocksByMember = {};
+  blocks.forEach(b => {
+    if (!blocksByMember[b.team_member_id]) blocksByMember[b.team_member_id] = [];
+    blocksByMember[b.team_member_id].push(b);
   });
-  document.getElementById("mbColorLabel").textContent=BLOCK_TYPES[_selType];
-}
-function openModal(memberId,container){
-  _modMember=memberId; _modContainer=container; _selType="prospeccao";
-  document.getElementById("mbTitle").value="";
-  document.getElementById("mbStart").value="08:00";
-  document.getElementById("mbEnd").value="09:00";
-  document.querySelectorAll("#mbDays .dpill").forEach(p=>p.classList.remove("on"));
-  buildSwatches();
-  document.getElementById("blockModal").classList.add("open");
-  setTimeout(()=>document.getElementById("mbTitle").focus(),120);
-}
-function closeModal(){
-  document.getElementById("blockModal").classList.remove("open");
-  _modMember=null; _modContainer=null;
-}
-document.getElementById("modalCloseBtn").onclick=closeModal;
-document.getElementById("modalCancelBtn").onclick=closeModal;
-document.getElementById("blockModal").addEventListener("click",e=>{if(e.target===document.getElementById("blockModal"))closeModal();});
 
-document.querySelectorAll("#mbDays .dpill").forEach(p=>{p.onclick=()=>p.classList.toggle("on");});
+  const todayDay = new Date().getDay();
 
-document.getElementById("modalSaveBtn").onclick=async()=>{
-  const title=document.getElementById("mbTitle").value.trim();
-  const start=document.getElementById("mbStart").value;
-  const end=document.getElementById("mbEnd").value;
-  const days=[...document.querySelectorAll("#mbDays .dpill.on")].map(p=>parseInt(p.dataset.d));
-  if(!title){toast("Digite o título.");return;}
-  if(!days.length){toast("Selecione ao menos um dia.");return;}
-  if(end<=start){toast("Fim deve ser depois do início.");return;}
-  const btn=document.getElementById("modalSaveBtn"); btn.disabled=true;
-  try{
-    for(const day of days){
-      const {error}=await _db.from("routine_blocks").insert([{team_member_id:_modMember,day_of_week:day,start_time:start,end_time:end,title,block_type:_selType}]);
-      if(error)throw error;
-    }
-    toast(`Bloco${days.length>1?"s":""} salvo${days.length>1?"s":""}!`);
-    closeModal();
-    if(_modContainer)await refreshBlocks(_modMember,_modContainer);
-  }catch(e){toast("Erro: "+describeError(e));}
-  finally{btn.disabled=false;}
-};
+  ROLES.forEach(role => {
+    const roleMembers = members.filter(m => m.role === role.key);
+    if (roleMembers.length === 0) return;
 
-/* ── Diagnóstico de erro ── */
-function describeError(e){
-  if(!e) return "Erro desconhecido.";
-  const parts=[];
-  if(e.message) parts.push(e.message);
-  if(e.code) parts.push(`código: ${e.code}`);
-  if(e.details) parts.push(`detalhes: ${e.details}`);
-  if(e.hint) parts.push(`dica: ${e.hint}`);
-  return parts.length ? parts.join(" — ") : JSON.stringify(e);
-}
+    const section = document.createElement("section");
+    section.className = "role-section";
 
-function showDiag(message, ok){
-  const el=document.getElementById("diag");
-  el.style.display="block";
-  el.style.background = ok ? "var(--green-dim)" : "#2a1111";
-  el.style.border = "1px solid " + (ok ? "var(--green)" : "#f87171");
-  el.style.color = ok ? "var(--green)" : "#f87171";
-  el.textContent = message;
-}
-function hideDiag(){
-  document.getElementById("diag").style.display="none";
-}
+    const headRow = document.createElement("div");
+    headRow.className = "role-head";
 
-/* Testa a conexão com o Supabase antes de carregar qualquer coisa */
-async function runDiagnostics(){
-  try{
-    const {error} = await _db.from("team_members").select("id").limit(1);
-    if(error) throw error;
-    hideDiag();
-  }catch(e){
-    showDiag(
-      "Não foi possível conectar ao Supabase.\n" + describeError(e) +
-      "\n\nVerifique SUPABASE_URL e SUPABASE_KEY no topo do <script>, e confirme que o schema.sql foi executado no projeto certo.",
-      false
-    );
-  }
-}
+    const h2 = document.createElement("h2");
+    h2.textContent = role.label;
 
-/* ── Panel ── */
-async function initPanel(){
-  document.getElementById("newRole").innerHTML=ROLES.map(r=>`<option value="${r.key}">${r.label}</option>`).join("");
+    const line = document.createElement("div");
+    line.className = "role-line";
 
-  await runDiagnostics();
+    const count = document.createElement("span");
+    count.className = "role-count";
+    count.textContent = roleMembers.length + (roleMembers.length === 1 ? " pessoa" : " pessoas");
 
-  document.getElementById("addMemberBtn").onclick=async()=>{
-    const name=document.getElementById("newName").value.trim();
-    const role=document.getElementById("newRole").value;
-    if(!name){toast("Digite o nome.");return;}
-    try{
-      const memberSlug = await uniqueSlug(slug(name));
-      const {error}=await _db.from("team_members").insert([{name,role,initials:initials(name),slug:memberSlug}]);
-      if(error)throw error;
-      document.getElementById("newName").value="";
-      toast("Pessoa adicionada!"); loadMembers();
-    }catch(e){toast("Erro: "+describeError(e));}
-  };
-  loadMembers();
-}
+    headRow.appendChild(h2);
+    headRow.appendChild(line);
+    headRow.appendChild(count);
+    section.appendChild(headRow);
 
-async function loadMembers(){
-  const list=document.getElementById("membersList");
-  list.innerHTML=`<p class="muted">Carregando...</p>`;
-  const{data,error}=await _db.from("team_members").select("*").order("name");
-  if(error){list.innerHTML=`<div class="empty">Erro ao carregar: ${describeError(error)}</div>`;return;}
-  if(!data||!data.length){list.innerHTML=`<div class="empty">Nenhuma pessoa cadastrada ainda.</div>`;return;}
-  list.innerHTML="";
-  for(const m of data)list.appendChild(await buildCard(m));
-}
+    roleMembers.forEach(member => {
+      const card = document.createElement("article");
+      card.className = "member-card";
 
-async function buildCard(m){
-  const card=document.createElement("div");
-  card.className="mcard";
+      const head = document.createElement("div");
+      head.className = "member-head";
 
-  /* head */
-  const head=document.createElement("div"); head.className="mhead";
-  const mid=document.createElement("div"); mid.className="mid";
+      const idBox = document.createElement("div");
+      idBox.className = "member-id";
 
-  const av=document.createElement("div"); av.className="av"; av.textContent=m.initials;
+      const avatar = document.createElement("div");
+      avatar.className = "avatar";
+      avatar.textContent = member.initials;
 
-  const meta=document.createElement("div"); meta.style.flex="1"; meta.style.minWidth="0";
+      const nameBox = document.createElement("div");
+      const name = document.createElement("h3");
+      name.textContent = member.name;
 
-  const ne=document.createElement("input"); ne.className="nedit"; ne.value=m.name;
-  ne.onblur=async()=>{
-    const n=ne.value.trim(); if(!n||n===m.name)return;
-    const {error}=await _db.from("team_members").update({name:n,initials:initials(n)}).eq("id",m.id);
-    if(error){toast("Erro: "+describeError(error));return;}
-    m.name=n; av.textContent=initials(n); toast("Nome atualizado.");
-  };
+      const roleTag = document.createElement("span");
+      roleTag.className = "role-tag " + member.role;
+      roleTag.textContent = ROLE_LABELS[member.role];
 
-  const row2=document.createElement("div"); row2.style.cssText="display:flex;align-items:center;gap:7px;margin-top:5px;";
-  const rs=document.createElement("select"); rs.style.cssText="width:auto;padding:4px 26px 4px 7px;font-size:12px;background:#1a1e1a;border:1px solid #2f342f;border-radius:6px;color:#e8ede8;appearance:none;";
-  rs.innerHTML=ROLES.map(r=>`<option value="${r.key}"${r.key===m.role?" selected":""}>${r.label}</option>`).join("");
-  rs.onchange=async()=>{
-    const {error}=await _db.from("team_members").update({role:rs.value}).eq("id",m.id);
-    if(error){toast("Erro: "+describeError(error));return;}
-    m.role=rs.value; toast("Cargo atualizado.");
-  };
+      nameBox.appendChild(name);
+      nameBox.appendChild(roleTag);
 
-  const cb=document.createElement("button"); cb.className="btn ghost"; cb.textContent="Copiar link";
-  cb.onclick=()=>{
-    const link=`${location.origin}${location.pathname.replace("admin.html","")}agenda.html?p=${m.slug}`;
-    navigator.clipboard.writeText(link); toast("Link copiado!");
-  };
-  row2.appendChild(rs); row2.appendChild(cb);
-  meta.appendChild(ne); meta.appendChild(row2);
-  mid.appendChild(av); mid.appendChild(meta);
+      idBox.appendChild(avatar);
+      idBox.appendChild(nameBox);
 
-  const del=document.createElement("button"); del.className="btn dan"; del.textContent="Excluir";
-  del.onclick=async()=>{
-    if(!confirm(`Excluir ${m.name}?`))return;
-    const {error}=await _db.from("team_members").delete().eq("id",m.id);
-    if(error){toast("Erro: "+describeError(error));return;}
-    toast("Excluído."); loadMembers();
-  };
-  head.appendChild(mid); head.appendChild(del);
-  card.appendChild(head);
+      const link = document.createElement("a");
+      link.className = "btn";
+      link.href = `agenda.html?p=${member.slug}`;
+      link.textContent = "Ver agenda de " + memberFirstName(member.name) + " ↗";
 
-  /* routine */
-  const ed=document.createElement("div"); ed.className="reditor";
-  const lbl=document.createElement("p"); lbl.className="slabel"; lbl.textContent="Rotina fixa";
-  const blist=document.createElement("div");
-  const ab=document.createElement("button"); ab.className="btn sec"; ab.style.fontSize="12px"; ab.textContent="+ Novo bloco";
-  ab.onclick=()=>openModal(m.id,blist);
-  ed.appendChild(lbl); ed.appendChild(blist); ed.appendChild(ab);
-  card.appendChild(ed);
+      head.appendChild(idBox);
+      head.appendChild(link);
 
-  await refreshBlocks(m.id,blist);
-  return card;
-}
+      card.appendChild(head);
+      card.appendChild(renderBoard(groupBlocksByDay(blocksByMember[member.id] || []), todayDay));
 
-async function refreshBlocks(memberId,container){
-  container.innerHTML="";
-  const{data,error}=await _db.from("routine_blocks").select("*").eq("team_member_id",memberId).order("day_of_week").order("start_time");
-  if(error){container.innerHTML=`<p class="muted" style="margin-bottom:10px;font-size:12px;">Erro ao carregar rotina.</p>`;return;}
-  if(!data||!data.length){
-    container.innerHTML=`<p class="muted" style="margin-bottom:10px;font-size:12px;">Nenhum bloco ainda.</p>`;return;
-  }
-  data.forEach(b=>{
-    const row=document.createElement("div"); row.className="rrow";
-    const dot=document.createElement("span"); dot.className="rdot";
-    const color=BLOCK_COLORS[b.block_type];
-    if(!color||color==="transparent"){
-      dot.style.background="transparent";
-      dot.style.border="1.5px dashed var(--t2)";
-    } else {
-      dot.style.background=color;
-    }
-    const day=document.createElement("span"); day.className="rday"; day.textContent=DAY_SHORT[b.day_of_week]||"—";
-    const time=document.createElement("span"); time.className="rtime"; time.textContent=`${b.start_time.slice(0,5)}–${b.end_time.slice(0,5)}`;
-    const title=document.createElement("span"); title.className="rtitle"; title.textContent=b.title;
-    const del=document.createElement("button"); del.className="btn dan"; del.style.marginLeft="auto"; del.textContent="Remover";
-    del.onclick=async()=>{
-      const {error}=await _db.from("routine_blocks").delete().eq("id",b.id);
-      if(error){toast("Erro: "+describeError(error));return;}
-      refreshBlocks(memberId,container);
-    };
-    row.appendChild(dot);row.appendChild(day);row.appendChild(time);row.appendChild(title);row.appendChild(del);
-    container.appendChild(row);
+      section.appendChild(card);
+    });
+
+    content.appendChild(section);
   });
+
+  if (members.length === 0) {
+    content.innerHTML = `<div class="empty-state">Nenhuma pessoa cadastrada ainda. Acesse o <a href="admin.html">painel administrativo</a> para adicionar o time.</div>`;
+  }
 }
 
-checkGate();
+init();
 </script>
+
 </body>
 </html>
