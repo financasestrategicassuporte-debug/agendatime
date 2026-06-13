@@ -503,6 +503,24 @@ input:focus, select:focus, textarea:focus{
   font-size:14px;
 }
 
+/* ---------- Reminder badges (próximos eventos) ---------- */
+.ev-badge{
+  display:inline-flex;
+  align-items:center;
+  font-family:var(--font-mono);
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:0.04em;
+  text-transform:none;
+  padding:2px 8px;
+  border-radius:999px;
+  margin-left:8px;
+  vertical-align:middle;
+}
+.ev-badge.now{ background:var(--green); color:#0a0c0a; }
+.ev-badge.soon{ background:rgba(97,180,45,0.12); color:var(--green); border:1px solid var(--green); }
+.ev-badge.today{ background:transparent; color:var(--text-muted); border:1px solid var(--line); }
+
 /* ---------- Admin table ---------- */
 table.admin-table{
   width:100%;
