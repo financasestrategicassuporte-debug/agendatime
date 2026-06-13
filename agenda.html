@@ -313,6 +313,8 @@ function todayISO(){return new Date().toISOString().slice(0,10);}
 function addDays(iso,n){const d=new Date(iso+"T00:00:00");d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
 function addMonths(iso,n){const d=new Date(iso+"T00:00:00");d.setMonth(d.getMonth()+n);return d.toISOString().slice(0,10);}
 function isoFromYMD(y,m,d){const dt=new Date(y,m,d);return`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;}
+function weekMonday(){const d=new Date();const diff=(d.getDay()===0)?-6:1-d.getDay();const m=new Date(d);m.setDate(m.getDate()+diff);return m.toISOString().slice(0,10);}
+function addMinToTime(t,mins){const total=toMin(t)+mins;if(total>=1440)return"23:59";return`${String(Math.floor(total/60)).padStart(2,"0")}:${String(total%60).padStart(2,"0")}`;}
 
 function toast(msg){const el=document.getElementById("toast");el.textContent=msg;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),2200);}
 
@@ -460,6 +462,7 @@ async function renderRoutine(){
 function buildBoard(blocks,todayDay){
   const HOURS=[]; for(let h=7;h<=20;h++)HOURS.push(h);
   const PX=42, days=[1,2,3,4,5,6];
+  const monday=weekMonday(); // ISO date of this week's Monday
   const grid=document.createElement("div"); grid.className="board";
   grid.style.gridTemplateColumns="40px repeat(6,1fr)";
   const corner=document.createElement("div"); corner.className="bc hd"; grid.appendChild(corner);
@@ -468,6 +471,11 @@ function buildBoard(blocks,todayDay){
     const tl=document.createElement("div"); tl.className="bc tl"; tl.style.height=PX+"px"; tl.textContent=`${h}h`; grid.appendChild(tl);
     days.forEach(d=>{
       const cell=document.createElement("div"); cell.className="bc day"; cell.style.height=PX+"px";
+      cell.title=`Criar evento: ${DAY_SHORT[d]} ${h}h`;
+      // click → open new-event modal for that day+hour
+      const dayISO=addDays(monday,d-1);
+      const presetTime=`${String(h).padStart(2,"0")}:00`;
+      cell.onclick=()=>openModal(null,dayISO,presetTime);
       blocks.filter(b=>b.day_of_week===d).forEach(b=>{
         const[sh,sm]=b.start_time.split(":").map(Number);
         const[eh,em]=b.end_time.split(":").map(Number);
@@ -480,6 +488,7 @@ function buildBoard(blocks,todayDay){
           const bl=document.createElement("div"); bl.className="bblock";
           bl.style.cssText=`top:${top}px;height:${ht}px;background:${bg};border-left:3px solid ${col};`;
           bl.innerHTML=`<div class="bt" style="color:${col}">${b.title}</div><div class="bm">${b.start_time.slice(0,5)}–${b.end_time.slice(0,5)}</div>`;
+          bl.onclick=e=>{e.stopPropagation();openModal(null,dayISO,b.start_time.slice(0,5));}; // click on a block still creates
           cell.appendChild(bl);
         }
       });
@@ -802,21 +811,26 @@ function initModal(){
     const isPrivate=document.getElementById("evPrivate").checked;
     const recurrence=document.getElementById("evRecurrence").value;
     const recurUntil=document.getElementById("evRecurUntil").value;
-    
-    if(!title||!date) {toast("Preencha título e data.");return;}
-    if(!isAllDay && (start >= end)) {toast("Fim deve ser depois do início.");return;}
+
+    // Visual validation — highlight fields vazios
+    const titleEl=document.getElementById("evTitle");
+    const dateEl=document.getElementById("evDate");
+    titleEl.style.borderColor=""; dateEl.style.borderColor="";
+    if(!title){titleEl.style.borderColor="#f87171";titleEl.focus();toast("⚠️ Preencha o título do evento.");return;}
+    if(!date){dateEl.style.borderColor="#f87171";dateEl.focus();toast("⚠️ Escolha a data.");return;}
+    if(!isAllDay && start && end && toMin(start)>=toMin(end)){toast("⚠️ Horário de fim deve ser após o início.");return;}
 
     const attIds=[...document.querySelectorAll("#evAttendees input:checked")].map(i=>i.value);
     document.getElementById("evSave").disabled=true;
     
     try{
       const evData = {
-        title, 
-        description:desc||null, 
+        title,
+        description:desc||null,
         location:loc||null,
-        event_date:date, 
-        start_time:isAllDay ? "00:00:00" : start, 
-        end_time:isAllDay ? "23:59:59" : end,
+        event_date:date,
+        start_time:isAllDay ? "00:00:00" : (start||"09:00"),
+        end_time:isAllDay ? "23:59:59" : (end||"10:00"),
         is_all_day:isAllDay,
         is_private:isPrivate,
         recurrence:recurrence
@@ -824,14 +838,19 @@ function initModal(){
 
       let evId = id;
       if(id) {
-        await _db.from("events").update(evData).eq("id", id);
-        await _db.from("event_attendees").delete().eq("event_id", id);
+        const{error:upErr}=await _db.from("events").update(evData).eq("id",id);
+        if(upErr) throw new Error(upErr.message||"Erro ao atualizar evento.");
+        await _db.from("event_attendees").delete().eq("event_id",id);
       } else {
-        const{data:ev}=await _db.from("events").insert([{...evData, created_by:MEMBER.id}]).select().single();
+        const{data:ev,error:insErr}=await _db.from("events").insert([{...evData,created_by:MEMBER.id}]).select().single();
+        if(insErr) throw new Error(insErr.message||"Erro ao salvar evento. Verifique as permissões do banco.");
         evId = ev.id;
       }
       
-      if(attIds.length) await _db.from("event_attendees").insert(attIds.map(uid=>({event_id:evId, team_member_id:uid})));
+      if(attIds.length){
+        const{error:attErr}=await _db.from("event_attendees").insert(attIds.map(uid=>({event_id:evId,team_member_id:uid})));
+        if(attErr) console.warn("Aviso ao salvar convidados:",attErr.message);
+      }
 
       /* Gera ocorrências futuras quando o evento é recorrente (apenas na criação) */
       let extra=0;
@@ -846,31 +865,39 @@ function initModal(){
         }
         if(occurrences.length){
           const rows=occurrences.map(d=>({...evData,event_date:d,created_by:MEMBER.id}));
-          const{data:created}=await _db.from("events").insert(rows).select();
+          const{data:created,error:recurErr}=await _db.from("events").insert(rows).select();
+          if(recurErr) console.warn("Aviso nas repetições:",recurErr.message);
           if(created&&attIds.length){
             const attRows=[];
             created.forEach(ev=>attIds.forEach(uid=>attRows.push({event_id:ev.id,team_member_id:uid})));
             await _db.from("event_attendees").insert(attRows);
           }
-          extra=occurrences.length;
+          extra=(created||[]).length;
         }
       }
       
-      toast(id ? "Evento atualizado!" : (extra ? `Evento criado com ${extra} repetições!` : "Evento criado!"));
+      toast(id ? "✅ Evento atualizado!" : (extra ? `✅ Evento criado com ${extra} repetições!` : "✅ Evento criado!"));
       closeModal();
       refreshCurrentView();
-    }catch(e){toast("Erro: "+e.message);}
+    }catch(e){
+      console.error("Erro ao salvar evento:",e);
+      toast("❌ "+e.message);
+    }
     finally{document.getElementById("evSave").disabled=false;}
   };
 }
 
-function openModal(ev=null, presetDate=null){
+function openModal(ev=null, presetDate=null, presetTime=null){
   const modalTitle = document.getElementById("modalTitle");
   document.getElementById("evId").value = ev ? ev.id : "";
   document.getElementById("evTitle").value = ev ? ev.title : "";
+  document.getElementById("evTitle").style.borderColor = ""; // clear validation
   document.getElementById("evDate").value = ev ? ev.event_date : (presetDate || todayISO());
-  document.getElementById("evStart").value = ev ? ev.start_time.slice(0,5) : "09:00";
-  document.getElementById("evEnd").value = ev ? ev.end_time.slice(0,5) : "10:00";
+  document.getElementById("evDate").style.borderColor = "";
+  const defStart = presetTime || "09:00";
+  const defEnd = addMinToTime(defStart, 60);
+  document.getElementById("evStart").value = ev ? ev.start_time.slice(0,5) : defStart;
+  document.getElementById("evEnd").value = ev ? ev.end_time.slice(0,5) : defEnd;
   document.getElementById("evDesc").value = ev ? (ev.description || "") : "";
   document.getElementById("evLocation").value = ev ? (ev.location || "") : "";
   document.getElementById("evAllDay").checked = ev ? !!ev.is_all_day : false;
