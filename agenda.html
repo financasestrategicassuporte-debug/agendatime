@@ -26,7 +26,7 @@ input,select,textarea{font-family:var(--ff)}
 .page{max-width:1060px;margin:0 auto;padding:0 20px 80px}
 
 /* topbar */
-.topbar{display:flex;align-items:center;gap:12px;padding:16px 0 20px;border-bottom:1px solid var(--l1);margin-bottom:28px}
+.topbar{display:flex;align-items:center;gap:12px;padding:16px 0 20px;border-bottom:1px solid var(--l1);margin-bottom:28px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:9px}
 .bmark{width:26px;height:26px;background:var(--green);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .bmark::before{content:"";width:9px;height:9px;border:2.5px solid var(--bg);border-radius:2px;transform:rotate(15deg);display:block}
@@ -129,7 +129,39 @@ textarea{resize:vertical}
 .muted{color:var(--t2);font-size:13px}
 .sec-block{margin-bottom:40px}
 
-@media(max-width:640px){.frow{flex-direction:column}}
+/* month view */
+.mcal-nav{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:16px}
+.mcal-nav .lbl{font-family:var(--fd);font-size:18px;text-transform:uppercase;letter-spacing:.04em;min-width:170px;text-align:center}
+.mcal-navbtn{width:32px;height:32px;border-radius:50%;background:var(--s2);border:1px solid var(--l2);color:var(--t1);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px}
+.mcal-navbtn:hover{border-color:var(--green);color:var(--green)}
+.mcal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--l1);border:1px solid var(--l1);border-radius:var(--r12);overflow:hidden;min-width:520px}
+.mcal-hd{background:var(--s2);padding:8px 4px;text-align:center;font-size:10px;font-weight:700;font-family:var(--fm);letter-spacing:.08em;text-transform:uppercase;color:var(--t2)}
+.mcal-cell{background:var(--s1);min-height:78px;padding:6px;cursor:pointer;transition:background .1s;display:flex;flex-direction:column;gap:4px}
+.mcal-cell:hover{background:rgba(61,220,104,.05)}
+.mcal-cell.other{opacity:.35}
+.mcal-cell.selected{background:rgba(61,220,104,.08);box-shadow:inset 0 0 0 1px var(--green)}
+.mcal-daynum{font-family:var(--fm);font-size:11px;color:var(--t2)}
+.mcal-cell.today .mcal-daynum{color:var(--green);font-weight:700}
+.mcal-dots{display:flex;flex-direction:column;gap:2px;overflow:hidden}
+.mcal-evdot{font-size:10px;padding:1px 4px;border-radius:3px;background:var(--green-dim);color:var(--green);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mcal-evdot.priv{background:var(--s3);color:var(--t2)}
+.mcal-more{font-size:10px;color:var(--t2);font-family:var(--fm)}
+.mcal-daylist{margin-top:18px}
+
+/* conflicts */
+.conflict-box{margin-top:8px;padding:9px 11px;border-radius:var(--r8);background:#2a1f08;border:1px solid #5a4a12;font-size:12px;color:#f2c811;display:none}
+.conflict-box.show{display:block}
+.conflict-box p{margin-bottom:3px;font-size:12px;color:#f2c811}
+.conflict-box p:last-child{margin-bottom:0}
+
+/* reminder badges */
+.ev-badge{display:inline-flex;align-items:center;font-family:var(--fm);font-size:10px;font-weight:700;letter-spacing:.04em;padding:2px 7px;border-radius:var(--rfull);margin-left:7px;vertical-align:middle}
+.ev-badge.now{background:var(--green);color:var(--bg)}
+.ev-badge.soon{background:var(--green-dim);color:var(--green);border:1px solid var(--green)}
+.ev-badge.today{background:var(--s3);color:var(--t2);border:1px solid var(--l2)}
+.notif-btn.on{background:var(--green-dim);color:var(--green);border-color:var(--green)}
+
+@media(max-width:640px){.frow{flex-direction:column}.mcal-grid{min-width:0}.mcal-cell{min-height:54px;padding:4px}.mcal-evdot{font-size:9px}.mcal-nav .lbl{min-width:120px;font-size:15px}}
 </style>
 </head>
 <body>
@@ -139,7 +171,8 @@ textarea{resize:vertical}
       <div class="bmark"></div>
       <span class="bname">Gestão Fitness Brasil</span>
     </div>
-    <a class="tback" href="index.html">← Equipe</a>
+    <button class="btn sec notif-btn" id="notifToggle" style="font-size:12px;margin-left:auto" title="Ativar lembretes de eventos neste navegador">🔔 Lembretes</button>
+    <a class="tback" href="index.html" style="margin-left:0">← Equipe</a>
   </div>
   
   <div class="search-bar">
@@ -211,6 +244,11 @@ textarea{resize:vertical}
       </select>
     </div>
 
+    <div class="field" style="margin-bottom:13px;display:none" id="recurUntilField">
+      <label>Repetir até</label>
+      <input type="date" id="evRecurUntil"/>
+    </div>
+
     <div class="field" style="margin-bottom:13px">
       <label>Localização</label>
       <input type="text" id="evLocation" placeholder="Sala, link do Zoom..."/>
@@ -224,6 +262,7 @@ textarea{resize:vertical}
     <div class="field" style="margin-bottom:13px">
       <label>Convidar membros</label>
       <div class="cblist" id="evAttendees"></div>
+      <div class="conflict-box" id="conflictBox"></div>
     </div>
 
     <div class="field" style="margin-bottom:0">
@@ -262,16 +301,25 @@ const ROLE_LABELS  = Object.fromEntries(ROLES.map(r=>[r.key,r.label]));
 const BLOCK_TYPES  = {prospeccao:"Prospecção",followup:"Follow-up",reuniao:"Reunião",admin:"Admin",treinamento:"Treinamento",outros:"Outros"};
 const BLOCK_COLORS = {prospeccao:"#3ddc68",followup:"#3b82f6",reuniao:"#f97316",admin:"#a855f7",treinamento:"#ec4899",outros:"#6b7280"};
 const BLOCK_BG     = {prospeccao:"rgba(61,220,104,.13)",followup:"rgba(59,130,246,.13)",reuniao:"rgba(249,115,22,.13)",admin:"rgba(168,85,247,.13)",treinamento:"rgba(236,72,153,.13)",outros:"rgba(107,114,128,.13)"};
-const DAY_SHORT    = {1:"SEG",2:"TER",3:"QUA",4:"QUI",5:"SEX",6:"SÁB"};
+const DAY_SHORT    = {0:"DOM",1:"SEG",2:"TER",3:"QUA",4:"QUI",5:"SEX",6:"SÁB"};
+const MONTH_NAMES  = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+const REMINDER_MIN_BEFORE = 15;
 
 function initials(n){return n.trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("").toUpperCase();}
 function slugFromName(n){return n.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");}
 function fmtDate(iso){const[y,m,d]=iso.split("-");return`${d}/${m}/${y}`;}
 function fmtDateDisplay(iso){const d=new Date(iso+"T00:00:00");const wd=new Intl.DateTimeFormat("pt-BR",{weekday:"short"}).format(d).replace(".","").toUpperCase();return`${wd} · ${fmtDate(iso)}`;}
+function todayISO(){return new Date().toISOString().slice(0,10);}
+function addDays(iso,n){const d=new Date(iso+"T00:00:00");d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
+function addMonths(iso,n){const d=new Date(iso+"T00:00:00");d.setMonth(d.getMonth()+n);return d.toISOString().slice(0,10);}
+function isoFromYMD(y,m,d){const dt=new Date(y,m,d);return`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;}
 
 function toast(msg){const el=document.getElementById("toast");el.textContent=msg;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),2200);}
 
 let MEMBER=null, ALL_MEMBERS=[], CURRENT_VIEW="week", SEARCH_QUERY="", ALL_EVENTS=[];
+let CAL_MONTH=new Date(); CAL_MONTH.setDate(1);
+let SELECTED_DAY=null, MONTH_EVENTS=[];
+let NOTIF_ENABLED=false, _reminderTimers=[], _conflictTimer=null;
 
 async function init(){
   const slug=new URLSearchParams(location.search).get("p");
@@ -286,10 +334,14 @@ async function init(){
   document.title=`${MEMBER.name} · Agenda · GFB`;
   const{data:members}=await _db.from("team_members").select("*").order("name");
   ALL_MEMBERS=members||[];
-  
+
+  NOTIF_ENABLED = ("Notification" in window) && Notification.permission==="granted" && localStorage.getItem(`gfb_notif_${MEMBER.slug}`)==="1";
+  initNotifButton();
+
   initUI();
   initModal();
   render();
+  setInterval(()=>{ if(CURRENT_VIEW!=="month") refreshEvents(); }, 60000);
 }
 
 function initUI(){
@@ -311,7 +363,48 @@ function initUI(){
     const display = e.target.checked ? "none" : "flex";
     document.getElementById("startField").style.display = display;
     document.getElementById("endField").style.display = display;
+    scheduleConflictCheck();
   };
+
+  document.getElementById("evRecurrence").onchange=(e)=>{
+    const field=document.getElementById("recurUntilField");
+    const isNew=!document.getElementById("evId").value;
+    if(e.target.value==="none"||!isNew){field.style.display="none";return;}
+    field.style.display="";
+    const base=document.getElementById("evDate").value||todayISO();
+    let until;
+    if(e.target.value==="daily")until=addDays(base,30);
+    else if(e.target.value==="weekly")until=addMonths(base,3);
+    else until=addMonths(base,6);
+    document.getElementById("evRecurUntil").value=until;
+  };
+
+  document.getElementById("evDate").onchange=scheduleConflictCheck;
+  document.getElementById("evStart").onchange=scheduleConflictCheck;
+  document.getElementById("evEnd").onchange=scheduleConflictCheck;
+  document.getElementById("evAttendees").addEventListener("change",scheduleConflictCheck);
+
+  document.getElementById("notifToggle").onclick=async()=>{
+    if(!("Notification" in window)){toast("Seu navegador não suporta notificações.");return;}
+    if(!NOTIF_ENABLED){
+      const perm=await Notification.requestPermission();
+      if(perm!=="granted"){toast("Permissão de notificação não concedida.");return;}
+      NOTIF_ENABLED=true;
+      toast("Lembretes ativados! Avisamos "+REMINDER_MIN_BEFORE+" min antes de cada evento.");
+    }else{
+      NOTIF_ENABLED=false;
+      toast("Lembretes desativados.");
+    }
+    localStorage.setItem(`gfb_notif_${MEMBER.slug}`, NOTIF_ENABLED?"1":"0");
+    initNotifButton();
+    scheduleReminders();
+  };
+}
+
+function initNotifButton(){
+  const btn=document.getElementById("notifToggle");
+  btn.classList.toggle("on",NOTIF_ENABLED);
+  btn.textContent = NOTIF_ENABLED ? "🔔 Lembretes ativos" : "🔔 Lembretes";
 }
 
 async function render(){
@@ -323,7 +416,7 @@ async function render(){
     await renderRoutine();
     await renderEvents();
   } else if(CURRENT_VIEW === "month") {
-    content.innerHTML += `<div class="empty">Visualização Mensal (Em desenvolvimento)</div>`;
+    await renderMonthView();
   } else {
     await renderEvents();
   }
@@ -408,11 +501,95 @@ async function renderEvents(){
   await refreshEvents();
 }
 
+async function renderMonthView(){
+  const c=document.getElementById("content");
+  const sec=document.createElement("div"); sec.className="sec-block";
+  const today=todayISO();
+  const year=CAL_MONTH.getFullYear(), month=CAL_MONTH.getMonth();
+
+  /* navegação */
+  const nav=document.createElement("div"); nav.className="mcal-nav";
+  const prev=document.createElement("button"); prev.className="mcal-navbtn"; prev.textContent="‹";
+  prev.onclick=()=>{CAL_MONTH.setMonth(CAL_MONTH.getMonth()-1);SELECTED_DAY=null;render();};
+  const lblEl=document.createElement("span"); lblEl.className="lbl"; lblEl.textContent=`${MONTH_NAMES[month]} ${year}`;
+  const next=document.createElement("button"); next.className="mcal-navbtn"; next.textContent="›";
+  next.onclick=()=>{CAL_MONTH.setMonth(CAL_MONTH.getMonth()+1);SELECTED_DAY=null;render();};
+  nav.appendChild(prev); nav.appendChild(lblEl); nav.appendChild(next);
+  sec.appendChild(nav);
+
+  /* grade */
+  const wrap=document.createElement("div"); wrap.className="board-wrap";
+  const grid=document.createElement("div"); grid.className="mcal-grid";
+  for(let d=0;d<7;d++){const hd=document.createElement("div");hd.className="mcal-hd";hd.textContent=DAY_SHORT[d];grid.appendChild(hd);}
+
+  const firstDow=new Date(year,month,1).getDay();
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const daysInPrevMonth=new Date(year,month,0).getDate();
+  const totalCells=Math.ceil((firstDow+daysInMonth)/7)*7;
+
+  const startISO=isoFromYMD(year,month,1-firstDow);
+  const endISO=isoFromYMD(year,month,daysInMonth+(totalCells-firstDow-daysInMonth));
+  MONTH_EVENTS=await fetchEventsInRange(startISO,endISO);
+
+  if(!SELECTED_DAY) SELECTED_DAY = (year===new Date().getFullYear()&&month===new Date().getMonth()) ? today : isoFromYMD(year,month,1);
+
+  for(let i=0;i<totalCells;i++){
+    const dayNum=i-firstDow+1;
+    let y=year,m=month,d=dayNum,isOther=false;
+    if(dayNum<1){m=month-1;d=daysInPrevMonth+dayNum;isOther=true;}
+    else if(dayNum>daysInMonth){m=month+1;d=dayNum-daysInMonth;isOther=true;}
+    const iso=isoFromYMD(y,m,d);
+
+    const cell=document.createElement("div");
+    cell.className="mcal-cell"+(isOther?" other":"")+(iso===today?" today":"")+(iso===SELECTED_DAY?" selected":"");
+    const num=document.createElement("div"); num.className="mcal-daynum"; num.textContent=d;
+    cell.appendChild(num);
+
+    const dayEvents=MONTH_EVENTS.filter(e=>e.event_date===iso);
+    if(dayEvents.length){
+      const dots=document.createElement("div"); dots.className="mcal-dots";
+      dayEvents.slice(0,3).forEach(ev=>{
+        const isPriv=ev.is_private&&ev.created_by!==MEMBER.id;
+        const dot=document.createElement("div"); dot.className="mcal-evdot"+(isPriv?" priv":"");
+        dot.textContent=isPriv?"🔒 Privado":(ev.is_all_day?ev.title:`${ev.start_time.slice(0,5)} ${ev.title}`);
+        dots.appendChild(dot);
+      });
+      if(dayEvents.length>3){const more=document.createElement("div");more.className="mcal-more";more.textContent=`+${dayEvents.length-3} mais`;dots.appendChild(more);}
+      cell.appendChild(dots);
+    }
+
+    cell.onclick=()=>{SELECTED_DAY=iso;render();};
+    grid.appendChild(cell);
+  }
+  wrap.appendChild(grid);
+  sec.appendChild(wrap);
+
+  /* lista do dia selecionado */
+  const dl=document.createElement("div"); dl.className="mcal-daylist";
+  const dlHead=document.createElement("div"); dlHead.style.cssText="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px";
+  const dlLbl=document.createElement("p"); dlLbl.className="slabel"; dlLbl.style.margin="0"; dlLbl.textContent=fmtDateDisplay(SELECTED_DAY);
+  const dlBtn=document.createElement("button"); dlBtn.className="btn pri"; dlBtn.style.fontSize="12px"; dlBtn.textContent="+ Novo evento";
+  dlBtn.onclick=()=>openModal(null,SELECTED_DAY);
+  dlHead.appendChild(dlLbl); dlHead.appendChild(dlBtn);
+  dl.appendChild(dlHead);
+
+  const dayEvents=MONTH_EVENTS.filter(e=>e.event_date===SELECTED_DAY).sort((a,b)=>a.start_time.localeCompare(b.start_time));
+  if(!dayEvents.length){
+    const empty=document.createElement("div"); empty.className="empty"; empty.textContent="Nenhum evento neste dia.";
+    dl.appendChild(empty);
+  }else{
+    dayEvents.forEach(ev=>dl.appendChild(buildEventCard(ev,()=>render())));
+  }
+  sec.appendChild(dl);
+
+  c.appendChild(sec);
+}
+
 async function refreshEvents(){
   const list=document.getElementById("evList"); if(!list)return;
   list.innerHTML=`<p class="muted">Carregando...</p>`;
-  const today=new Date().toISOString().slice(0,10);
-  
+  const today=todayISO();
+
   const{data:owned}=await _db.from("events").select("*,team_members!events_created_by_fkey(id,name,initials),event_attendees(team_members(id,name,initials))").eq("created_by",MEMBER.id).gte("event_date",today).order("event_date").order("start_time");
   const{data:invRows}=await _db.from("event_attendees").select("events(*,team_members!events_created_by_fkey(id,name,initials),event_attendees(team_members(id,name,initials)))").eq("team_member_id",MEMBER.id);
   
@@ -435,51 +612,166 @@ async function refreshEvents(){
 
   list.innerHTML="";
   if(!filtered.length){list.innerHTML=`<div class="empty">Nenhum evento encontrado.</div>`;return;}
-  
-  filtered.forEach(ev=>{
-    if(ev.is_private && ev.created_by !== MEMBER.id) {
-        // Render private event placeholder
-        const card=document.createElement("div"); card.className="ev-card";
-        card.innerHTML = `<div class="ev-main"><div class="ev-date">${fmtDateDisplay(ev.event_date)}</div><h4>🔒 Evento Privado</h4><p class="muted">Detalhes ocultos</p></div>`;
-        list.appendChild(card);
-        return;
-    }
+  filtered.forEach(ev=>list.appendChild(buildEventCard(ev,refreshEvents)));
+  scheduleReminders();
+}
 
+/* Busca eventos (próprios ou como convidado) numa faixa de datas [startISO,endISO] inclusive */
+async function fetchEventsInRange(startISO,endISO){
+  const{data:owned}=await _db.from("events").select("*,team_members!events_created_by_fkey(id,name,initials),event_attendees(team_members(id,name,initials))").eq("created_by",MEMBER.id).gte("event_date",startISO).lte("event_date",endISO);
+  const{data:invRows}=await _db.from("event_attendees").select("events(*,team_members!events_created_by_fkey(id,name,initials),event_attendees(team_members(id,name,initials)))").eq("team_member_id",MEMBER.id);
+  const inv=(invRows||[]).map(r=>r.events).filter(Boolean);
+  const seen=new Set();
+  return [...(owned||[]),...inv].filter(e=>{
+    if(!e||seen.has(e.id))return false;
+    if(e.event_date<startISO||e.event_date>endISO)return false;
+    seen.add(e.id);
+    return true;
+  }).sort((a,b)=>a.event_date.localeCompare(b.event_date)||a.start_time.localeCompare(b.start_time));
+}
+
+/* Retorna {cls,label} para destacar eventos de hoje/em breve/agora, ou null */
+function eventBadge(ev){
+  const today=todayISO();
+  if(ev.event_date!==today)return null;
+  if(ev.is_all_day)return{cls:"today",label:"Hoje"};
+  const now=new Date();
+  const start=new Date(`${ev.event_date}T${ev.start_time}`);
+  const end=new Date(`${ev.event_date}T${ev.end_time}`);
+  if(now>=start&&now<end)return{cls:"now",label:"Agora"};
+  if(now<start){
+    const diffMin=Math.round((start-now)/60000);
+    if(diffMin<=120){
+      const label=diffMin<60?`Em ${diffMin}min`:`Em ${Math.floor(diffMin/60)}h${diffMin%60?(diffMin%60)+"min":""}`;
+      return{cls:"soon",label};
+    }
+  }
+  return{cls:"today",label:"Hoje"};
+}
+
+/* Constrói o card de um evento. onChange é chamado após editar/excluir, para atualizar a lista. */
+function buildEventCard(ev,onChange){
+  if(ev.is_private && ev.created_by !== MEMBER.id){
     const card=document.createElement("div"); card.className="ev-card";
-    const main=document.createElement("div"); main.className="ev-main";
     const timeStr = ev.is_all_day ? "Dia Inteiro" : `${ev.start_time.slice(0,5)}–${ev.end_time.slice(0,5)}`;
-    const de=document.createElement("div"); de.className="ev-date"; de.textContent=`${fmtDateDisplay(ev.event_date)} · ${timeStr}`;
-    const ti=document.createElement("h4"); ti.textContent=ev.title;
-    main.appendChild(de); main.appendChild(ti);
-    
-    if(ev.location){const l=document.createElement("p"); l.style.color="var(--green)"; l.textContent="📍 " + ev.location; main.appendChild(l);}
-    if(ev.description){const p=document.createElement("p");p.textContent=ev.description;main.appendChild(p);}
-    
-    const chips=document.createElement("div"); chips.className="chips";
-    const isOwner=ev.created_by===MEMBER.id;
-    const ownerName=ev.team_members?.name;
-    const c0=document.createElement("span"); c0.className="chip";
-    const a0=document.createElement("span"); a0.className="av sm"; a0.style.cssText="background:var(--green-dim);color:var(--green)"; a0.textContent=isOwner?MEMBER.initials:(ownerName?initials(ownerName):"?");
-    c0.appendChild(a0); c0.append(" "+(isOwner?"Você (org.)":(ownerName||"—"))); chips.appendChild(c0);
-    (ev.event_attendees||[]).forEach(a=>{
-      if(!a.team_members)return;
-      const cx=document.createElement("span"); cx.className="chip";
-      const ax=document.createElement("span"); ax.className="av sm"; ax.textContent=a.team_members.initials;
-      const isSelf=a.team_members.id===MEMBER.id;
-      cx.appendChild(ax); cx.append(" "+(isSelf?"Você":a.team_members.name)); chips.appendChild(cx);
-    });
-    main.appendChild(chips); card.appendChild(main);
-    
-    const side=document.createElement("div"); side.style.cssText="display:flex;flex-direction:column;gap:5px;align-items:flex-end";
-    if(isOwner){
-      const eb=document.createElement("button"); eb.className="btn sec"; eb.style.fontSize="11px"; eb.textContent="Editar";
-      eb.onclick=()=>openModal(ev);
-      const db=document.createElement("button"); db.className="btn dan"; db.textContent="Excluir";
-      db.onclick=async()=>{if(!confirm(`Excluir "${ev.title}"?`))return;await _db.from("event_attendees").delete().eq("event_id",ev.id);await _db.from("events").delete().eq("id",ev.id);toast("Evento excluído.");refreshEvents();};
-      side.appendChild(eb); side.appendChild(db);
-    }else{const b=document.createElement("span");b.className="role-tag";b.textContent="Convidado(a)";side.appendChild(b);}
-    card.appendChild(side); list.appendChild(card);
+    card.innerHTML = `<div class="ev-main"><div class="ev-date">${fmtDateDisplay(ev.event_date)} · ${timeStr}</div><h4>🔒 Evento Privado</h4><p class="muted">Detalhes ocultos</p></div>`;
+    return card;
+  }
+
+  const card=document.createElement("div"); card.className="ev-card";
+  const main=document.createElement("div"); main.className="ev-main";
+  const timeStr = ev.is_all_day ? "Dia Inteiro" : `${ev.start_time.slice(0,5)}–${ev.end_time.slice(0,5)}`;
+  const de=document.createElement("div"); de.className="ev-date"; de.textContent=`${fmtDateDisplay(ev.event_date)} · ${timeStr}`;
+  const ti=document.createElement("h4"); ti.textContent=ev.title;
+  const badge=eventBadge(ev);
+  if(badge){const bd=document.createElement("span");bd.className="ev-badge "+badge.cls;bd.textContent=badge.label;ti.appendChild(bd);}
+  if(ev.recurrence&&ev.recurrence!=="none"){const rb=document.createElement("span");rb.className="ev-badge today";rb.style.background="transparent";rb.style.border="1px dashed var(--l2)";rb.style.color="var(--t2)";rb.textContent="🔁 "+({daily:"Diário",weekly:"Semanal",monthly:"Mensal"}[ev.recurrence]||ev.recurrence);ti.appendChild(rb);}
+  main.appendChild(de); main.appendChild(ti);
+  
+  if(ev.location){const l=document.createElement("p"); l.style.color="var(--green)"; l.textContent="📍 " + ev.location; main.appendChild(l);}
+  if(ev.description){const p=document.createElement("p");p.textContent=ev.description;main.appendChild(p);}
+  
+  const chips=document.createElement("div"); chips.className="chips";
+  const isOwner=ev.created_by===MEMBER.id;
+  const ownerName=ev.team_members?.name;
+  const c0=document.createElement("span"); c0.className="chip";
+  const a0=document.createElement("span"); a0.className="av sm"; a0.style.cssText="background:var(--green-dim);color:var(--green)"; a0.textContent=isOwner?MEMBER.initials:(ownerName?initials(ownerName):"?");
+  c0.appendChild(a0); c0.append(" "+(isOwner?"Você (org.)":(ownerName||"—"))); chips.appendChild(c0);
+  (ev.event_attendees||[]).forEach(a=>{
+    if(!a.team_members)return;
+    const cx=document.createElement("span"); cx.className="chip";
+    const ax=document.createElement("span"); ax.className="av sm"; ax.textContent=a.team_members.initials;
+    const isSelf=a.team_members.id===MEMBER.id;
+    cx.appendChild(ax); cx.append(" "+(isSelf?"Você":a.team_members.name)); chips.appendChild(cx);
   });
+  main.appendChild(chips); card.appendChild(main);
+  
+  const side=document.createElement("div"); side.style.cssText="display:flex;flex-direction:column;gap:5px;align-items:flex-end";
+  if(isOwner){
+    const eb=document.createElement("button"); eb.className="btn sec"; eb.style.fontSize="11px"; eb.textContent="Editar";
+    eb.onclick=()=>openModal(ev);
+    const db=document.createElement("button"); db.className="btn dan"; db.textContent="Excluir";
+    db.onclick=async()=>{if(!confirm(`Excluir "${ev.title}"?`))return;await _db.from("event_attendees").delete().eq("event_id",ev.id);await _db.from("events").delete().eq("id",ev.id);toast("Evento excluído.");onChange&&onChange();};
+    side.appendChild(eb); side.appendChild(db);
+  }else{const b=document.createElement("span");b.className="role-tag";b.textContent="Convidado(a)";side.appendChild(b);}
+  card.appendChild(side);
+  return card;
+}
+
+function toMin(t){const[h,m]=t.split(":").map(Number);return h*60+m;}
+
+function refreshCurrentView(){
+  if(CURRENT_VIEW==="month")render();
+  else refreshEvents();
+}
+
+/* Lembretes: agenda Notification do navegador 15min antes de cada evento de hoje */
+function scheduleReminders(){
+  _reminderTimers.forEach(t=>clearTimeout(t));
+  _reminderTimers=[];
+  if(!NOTIF_ENABLED||!("Notification" in window)||Notification.permission!=="granted")return;
+  const today=todayISO();
+  const now=new Date();
+  ALL_EVENTS.filter(ev=>ev.event_date===today&&!ev.is_all_day).forEach(ev=>{
+    const start=new Date(`${ev.event_date}T${ev.start_time}`);
+    const remindAt=new Date(start.getTime()-REMINDER_MIN_BEFORE*60000);
+    const delay=remindAt-now;
+    if(delay>0&&delay<24*3600000){
+      const t=setTimeout(()=>{
+        new Notification(`Em ${REMINDER_MIN_BEFORE} min: ${ev.title}`,{body:`${ev.start_time.slice(0,5)}–${ev.end_time.slice(0,5)}${ev.location?" · "+ev.location:""}`});
+      },delay);
+      _reminderTimers.push(t);
+    }
+  });
+}
+
+/* Verifica conflitos de horário para o organizador + convidados selecionados no modal */
+function scheduleConflictCheck(){
+  clearTimeout(_conflictTimer);
+  _conflictTimer=setTimeout(checkConflicts,350);
+}
+
+async function checkConflicts(){
+  const box=document.getElementById("conflictBox");
+  const date=document.getElementById("evDate").value;
+  const isAllDay=document.getElementById("evAllDay").checked;
+  const start=document.getElementById("evStart").value;
+  const end=document.getElementById("evEnd").value;
+  const id=document.getElementById("evId").value;
+  const attIds=[...document.querySelectorAll("#evAttendees input:checked")].map(i=>i.value);
+  const memberIds=[...new Set([MEMBER.id,...attIds])];
+
+  box.classList.remove("show"); box.innerHTML="";
+  if(isAllDay||!date||!start||!end||toMin(start)>=toMin(end))return;
+
+  const dayOfWeek=new Date(date+"T00:00:00").getDay();
+  const messages=[];
+
+  const{data:dayEvents}=await _db.from("events").select("id,title,start_time,end_time,is_all_day,created_by,event_attendees(team_member_id)").eq("event_date",date);
+  (dayEvents||[]).forEach(ev=>{
+    if(ev.id===id||ev.is_all_day)return;
+    const involved=memberIds.filter(mid=>ev.created_by===mid||(ev.event_attendees||[]).some(a=>a.team_member_id===mid));
+    if(!involved.length)return;
+    if(toMin(ev.start_time)<toMin(end)&&toMin(ev.end_time)>toMin(start)){
+      involved.forEach(mid=>{
+        const name=mid===MEMBER.id?"Você":(ALL_MEMBERS.find(m=>m.id===mid)?.name||"Alguém");
+        messages.push(`⚠️ ${name}: conflito com "${ev.title}" (${ev.start_time.slice(0,5)}–${ev.end_time.slice(0,5)})`);
+      });
+    }
+  });
+
+  const{data:blocks}=await _db.from("routine_blocks").select("*").eq("day_of_week",dayOfWeek).in("team_member_id",memberIds);
+  (blocks||[]).forEach(b=>{
+    if(toMin(b.start_time)<toMin(end)&&toMin(b.end_time)>toMin(start)){
+      const name=b.team_member_id===MEMBER.id?"Você":(ALL_MEMBERS.find(m=>m.id===b.team_member_id)?.name||"Alguém");
+      messages.push(`⚠️ ${name}: rotina fixa "${b.title}" (${b.start_time.slice(0,5)}–${b.end_time.slice(0,5)})`);
+    }
+  });
+
+  if(messages.length){
+    box.innerHTML=messages.map(m=>`<p>${m}</p>`).join("");
+    box.classList.add("show");
+  }
 }
 
 function initModal(){
@@ -509,6 +801,7 @@ function initModal(){
     const isAllDay=document.getElementById("evAllDay").checked;
     const isPrivate=document.getElementById("evPrivate").checked;
     const recurrence=document.getElementById("evRecurrence").value;
+    const recurUntil=document.getElementById("evRecurUntil").value;
     
     if(!title||!date) {toast("Preencha título e data.");return;}
     if(!isAllDay && (start >= end)) {toast("Fim deve ser depois do início.");return;}
@@ -539,20 +832,43 @@ function initModal(){
       }
       
       if(attIds.length) await _db.from("event_attendees").insert(attIds.map(uid=>({event_id:evId, team_member_id:uid})));
+
+      /* Gera ocorrências futuras quando o evento é recorrente (apenas na criação) */
+      let extra=0;
+      if(!id && recurrence!=="none" && recurUntil && recurUntil>date){
+        const step = recurrence==="daily" ? d=>addDays(d,1) : recurrence==="weekly" ? d=>addDays(d,7) : d=>addMonths(d,1);
+        const occurrences=[];
+        let cursor=date;
+        for(let n=0;n<60;n++){
+          cursor=step(cursor);
+          if(cursor>recurUntil)break;
+          occurrences.push(cursor);
+        }
+        if(occurrences.length){
+          const rows=occurrences.map(d=>({...evData,event_date:d,created_by:MEMBER.id}));
+          const{data:created}=await _db.from("events").insert(rows).select();
+          if(created&&attIds.length){
+            const attRows=[];
+            created.forEach(ev=>attIds.forEach(uid=>attRows.push({event_id:ev.id,team_member_id:uid})));
+            await _db.from("event_attendees").insert(attRows);
+          }
+          extra=occurrences.length;
+        }
+      }
       
-      toast(id ? "Evento atualizado!" : "Evento criado!");
+      toast(id ? "Evento atualizado!" : (extra ? `Evento criado com ${extra} repetições!` : "Evento criado!"));
       closeModal();
-      refreshEvents();
+      refreshCurrentView();
     }catch(e){toast("Erro: "+e.message);}
     finally{document.getElementById("evSave").disabled=false;}
   };
 }
 
-function openModal(ev=null){
+function openModal(ev=null, presetDate=null){
   const modalTitle = document.getElementById("modalTitle");
   document.getElementById("evId").value = ev ? ev.id : "";
   document.getElementById("evTitle").value = ev ? ev.title : "";
-  document.getElementById("evDate").value = ev ? ev.event_date : new Date().toISOString().slice(0,10);
+  document.getElementById("evDate").value = ev ? ev.event_date : (presetDate || todayISO());
   document.getElementById("evStart").value = ev ? ev.start_time.slice(0,5) : "09:00";
   document.getElementById("evEnd").value = ev ? ev.end_time.slice(0,5) : "10:00";
   document.getElementById("evDesc").value = ev ? (ev.description || "") : "";
@@ -560,14 +876,18 @@ function openModal(ev=null){
   document.getElementById("evAllDay").checked = ev ? !!ev.is_all_day : false;
   document.getElementById("evPrivate").checked = ev ? !!ev.is_private : false;
   document.getElementById("evRecurrence").value = ev ? (ev.recurrence || "none") : "none";
+  document.getElementById("evRecurUntil").value = "";
+  document.getElementById("recurUntilField").style.display = "none";
   
   modalTitle.textContent = ev ? "Editar Evento" : "Novo Evento";
   document.getElementById("npBox").style.display="none";
+  document.getElementById("conflictBox").classList.remove("show");
   document.getElementById("evAllDay").dispatchEvent(new Event('change'));
   
   renderCheckboxes(ev ? ev.event_attendees?.map(a=>a.team_members.id) : []);
   document.getElementById("evModal").classList.add("open");
   setTimeout(()=>document.getElementById("evTitle").focus(),120);
+  scheduleConflictCheck();
 }
 
 function closeModal(){document.getElementById("evModal").classList.remove("open");}
