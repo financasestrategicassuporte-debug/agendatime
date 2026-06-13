@@ -59,6 +59,31 @@ function formatDateBR(isoDate) {
   return `${d}/${m}/${y}`;
 }
 
+function formatDateDisplay(isoDate) {
+  const d = new Date(isoDate + "T00:00:00");
+  const wd = new Intl.DateTimeFormat("pt-BR", { weekday: "short" }).format(d).replace(".", "").toUpperCase();
+  return `${wd} · ${formatDateBR(isoDate)}`;
+}
+
+/* Retorna {cls,label} para destacar eventos de hoje/em breve/agora, ou null se não for hoje */
+function eventBadge(ev) {
+  const today = new Date().toISOString().slice(0, 10);
+  if (ev.event_date !== today) return null;
+  if (ev.is_all_day) return { cls: "today", label: "Hoje" };
+  const now = new Date();
+  const start = new Date(`${ev.event_date}T${ev.start_time}`);
+  const end = new Date(`${ev.event_date}T${ev.end_time}`);
+  if (now >= start && now < end) return { cls: "now", label: "Agora" };
+  if (now < start) {
+    const diffMin = Math.round((start - now) / 60000);
+    if (diffMin <= 120) {
+      const label = diffMin < 60 ? `Em ${diffMin}min` : `Em ${Math.floor(diffMin / 60)}h${diffMin % 60 ? (diffMin % 60) + "min" : ""}`;
+      return { cls: "soon", label };
+    }
+  }
+  return { cls: "today", label: "Hoje" };
+}
+
 /* =============================================================
    TEAM MEMBERS
    ============================================================= */
@@ -203,4 +228,19 @@ async function createEvent(event, attendeeIds) {
 async function deleteEvent(id) {
   const { error } = await db.from("events").delete().eq("id", id);
   if (error) throw error;
+}
+
+/* Eventos de todo o time nos próximos `daysAhead` dias (inclui hoje), com criador e convidados */
+async function fetchUpcomingEvents(daysAhead = 14) {
+  const today = new Date().toISOString().slice(0, 10);
+  const future = new Date(Date.now() + daysAhead * 86400000).toISOString().slice(0, 10);
+  const { data, error } = await db
+    .from("events")
+    .select("*, team_members!events_created_by_fkey(id,name,initials), event_attendees(team_members(id,name,initials))")
+    .gte("event_date", today)
+    .lte("event_date", future)
+    .order("event_date")
+    .order("start_time");
+  if (error) throw error;
+  return data || [];
 }
