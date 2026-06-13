@@ -252,12 +252,12 @@ textarea{resize:vertical}
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
-// CONFIGURAÇÃO SUPABASE (Substitua pelas suas chaves)
-const SUPABASE_URL = "https://SEU_PROJETO.supabase.co";
-const SUPABASE_KEY = "SUA_ANON_KEY";
+// CONFIGURAÇÃO SUPABASE
+const SUPABASE_URL = "https://vsnfqohptlporesdfrtx.supabase.co";
+const SUPABASE_KEY = "sb_publishable_BGdjIkL0pTXSOTyIB6wxAg_zlao5meF";
 const _db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const ROLES        = [{key:"gestor",label:"Gestor"},{key:"consultor",label:"Consultor"},{key:"atendimento",label:"Atendimento"},{key:"operacional",label:"Operacional"}];
+const ROLES        = [{key:"sdr",label:"SDR"},{key:"closer",label:"Closer"},{key:"customer_success",label:"Customer Success"}];
 const ROLE_LABELS  = Object.fromEntries(ROLES.map(r=>[r.key,r.label]));
 const BLOCK_TYPES  = {prospeccao:"Prospecção",followup:"Follow-up",reuniao:"Reunião",admin:"Admin",treinamento:"Treinamento",outros:"Outros"};
 const BLOCK_COLORS = {prospeccao:"#3ddc68",followup:"#3b82f6",reuniao:"#f97316",admin:"#a855f7",treinamento:"#ec4899",outros:"#6b7280"};
@@ -265,7 +265,7 @@ const BLOCK_BG     = {prospeccao:"rgba(61,220,104,.13)",followup:"rgba(59,130,24
 const DAY_SHORT    = {1:"SEG",2:"TER",3:"QUA",4:"QUI",5:"SEX",6:"SÁB"};
 
 function initials(n){return n.trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("").toUpperCase();}
-function slugFromName(n){return n.toLowerCase().normalize("NFD").replace(/[\u0300//u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");}
+function slugFromName(n){return n.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");}
 function fmtDate(iso){const[y,m,d]=iso.split("-");return`${d}/${m}/${y}`;}
 function fmtDateDisplay(iso){const d=new Date(iso+"T00:00:00");const wd=new Intl.DateTimeFormat("pt-BR",{weekday:"short"}).format(d).replace(".","").toUpperCase();return`${wd} · ${fmtDate(iso)}`;}
 
