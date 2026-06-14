@@ -61,9 +61,15 @@ async function init() {
 
   const content = document.getElementById("content");
 
-  let members, blocks;
+  let members, blocks, weekEvents;
   try {
-    [members, blocks] = await Promise.all([fetchTeamMembers(), fetchAllRoutineBlocks()]);
+    const monday = getWeekMonday();
+    const saturday = addDaysISO(monday, 5);
+    [members, blocks, weekEvents] = await Promise.all([
+      fetchTeamMembers(),
+      fetchAllRoutineBlocks(),
+      fetchAllWeekEvents(monday, saturday)
+    ]);
   } catch (err) {
     content.innerHTML = `<div class="empty-state">Não foi possível carregar os dados. Verifique a configuração do Supabase em <code>assets/supabase-client.js</code>.<br><span class="muted">${err.message || err}</span></div>`;
     return;
@@ -76,6 +82,19 @@ async function init() {
     if (!blocksByMember[b.team_member_id]) blocksByMember[b.team_member_id] = [];
     blocksByMember[b.team_member_id].push(b);
   });
+
+  // Agrupa eventos da semana por membro (criador ou convidado) e por dia_da_semana
+  function memberEventsByDay(memberId) {
+    const byDay = {1:[],2:[],3:[],4:[],5:[],6:[]};
+    (weekEvents || []).forEach(ev => {
+      const isInvolved = ev.created_by === memberId ||
+        (ev.event_attendees || []).some(a => a.team_member_id === memberId);
+      if (!isInvolved) return;
+      const dow = new Date(ev.event_date + "T00:00:00").getDay();
+      if (dow >= 1 && dow <= 6) byDay[dow].push(ev);
+    });
+    return byDay;
+  }
 
   const todayDay = new Date().getDay();
 
@@ -141,7 +160,11 @@ async function init() {
       head.appendChild(link);
 
       card.appendChild(head);
-      card.appendChild(renderBoard(groupBlocksByDay(blocksByMember[member.id] || []), todayDay));
+      card.appendChild(renderBoard(
+        groupBlocksByDay(blocksByMember[member.id] || []),
+        todayDay,
+        memberEventsByDay(member.id)
+      ));
 
       section.appendChild(card);
     });
