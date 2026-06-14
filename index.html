@@ -54,119 +54,6 @@ function memberFirstName(name) {
   return name.split(" ")[0];
 }
 
-function renderUpcomingEvents(events) {
-  const section = document.createElement("section");
-  section.className = "role-section";
-
-  const headRow = document.createElement("div");
-  headRow.className = "role-head";
-  const h2 = document.createElement("h2");
-  h2.textContent = "Próximos Eventos";
-  const line = document.createElement("div");
-  line.className = "role-line";
-  const count = document.createElement("span");
-  count.className = "role-count";
-  count.textContent = (events.length === 1 ? "1 evento" : events.length + " eventos") + " · próximos 14 dias";
-  headRow.appendChild(h2);
-  headRow.appendChild(line);
-  headRow.appendChild(count);
-  section.appendChild(headRow);
-
-  if (!events.length) {
-    const empty = document.createElement("div");
-    empty.className = "empty-state";
-    empty.textContent = "Nenhum evento agendado nos próximos 14 dias.";
-    section.appendChild(empty);
-    return section;
-  }
-
-  events.forEach(ev => {
-    const card = document.createElement("article");
-    card.className = "event-card";
-    const timeStr = ev.is_all_day ? "Dia inteiro" : `${ev.start_time.slice(0, 5)}–${ev.end_time.slice(0, 5)}`;
-    const badge = eventBadge(ev);
-
-    if (ev.is_private) {
-      const main = document.createElement("div");
-      const date = document.createElement("div");
-      date.className = "event-date";
-      date.textContent = `${formatDateDisplay(ev.event_date)} · ${timeStr}`;
-      const h4 = document.createElement("h4");
-      h4.textContent = "🔒 Evento privado";
-      if (badge) {
-        const bd = document.createElement("span");
-        bd.className = "ev-badge " + badge.cls;
-        bd.textContent = badge.label;
-        h4.appendChild(bd);
-      }
-      const p = document.createElement("p");
-      p.textContent = `${ev.team_members?.name || "Alguém"} está ocupado(a) neste horário.`;
-      main.appendChild(date);
-      main.appendChild(h4);
-      main.appendChild(p);
-      card.appendChild(main);
-      section.appendChild(card);
-      return;
-    }
-
-    const main = document.createElement("div");
-    main.style.flex = "1";
-    const date = document.createElement("div");
-    date.className = "event-date";
-    date.textContent = `${formatDateDisplay(ev.event_date)} · ${timeStr}`;
-    const h4 = document.createElement("h4");
-    h4.textContent = ev.title;
-    if (badge) {
-      const bd = document.createElement("span");
-      bd.className = "ev-badge " + badge.cls;
-      bd.textContent = badge.label;
-      h4.appendChild(bd);
-    }
-    main.appendChild(date);
-    main.appendChild(h4);
-
-    if (ev.location) {
-      const l = document.createElement("p");
-      l.style.color = "var(--green)";
-      l.textContent = "📍 " + ev.location;
-      main.appendChild(l);
-    }
-    if (ev.description) {
-      const p = document.createElement("p");
-      p.textContent = ev.description;
-      main.appendChild(p);
-    }
-
-    const attendees = document.createElement("div");
-    attendees.className = "attendee-list";
-    const creator = document.createElement("span");
-    creator.className = "chip";
-    const cav = document.createElement("span");
-    cav.className = "avatar small";
-    cav.textContent = ev.team_members?.initials || "?";
-    creator.appendChild(cav);
-    creator.append(" " + (ev.team_members?.name || "—") + " (org.)");
-    attendees.appendChild(creator);
-    (ev.event_attendees || []).forEach(a => {
-      if (!a.team_members) return;
-      const chip = document.createElement("span");
-      chip.className = "chip";
-      const av = document.createElement("span");
-      av.className = "avatar small";
-      av.textContent = a.team_members.initials;
-      chip.appendChild(av);
-      chip.append(" " + a.team_members.name);
-      attendees.appendChild(chip);
-    });
-    main.appendChild(attendees);
-
-    card.appendChild(main);
-    section.appendChild(card);
-  });
-
-  return section;
-}
-
 async function init() {
   renderLegend(document.getElementById("legend"));
   updateNowDisplay();
@@ -174,17 +61,15 @@ async function init() {
 
   const content = document.getElementById("content");
 
-  let members, blocks, events;
+  let members, blocks;
   try {
-    [members, blocks, events] = await Promise.all([fetchTeamMembers(), fetchAllRoutineBlocks(), fetchUpcomingEvents(14)]);
+    [members, blocks] = await Promise.all([fetchTeamMembers(), fetchAllRoutineBlocks()]);
   } catch (err) {
     content.innerHTML = `<div class="empty-state">Não foi possível carregar os dados. Verifique a configuração do Supabase em <code>assets/supabase-client.js</code>.<br><span class="muted">${err.message || err}</span></div>`;
     return;
   }
 
   content.innerHTML = "";
-
-  content.appendChild(renderUpcomingEvents(events));
 
   const blocksByMember = {};
   blocks.forEach(b => {
