@@ -519,18 +519,18 @@ function buildBoard(blocks,todayDay,weekEvents=[]){
       (evsByDay[d]||[]).filter(ev=>!ev.is_all_day).forEach(ev=>{
         const[sh,sm]=ev.start_time.split(":").map(Number);
         const[eh,em]=ev.end_time.split(":").map(Number);
-        const s=sh+sm/60, e=eh+em/60;
+        const s=sh+sm/60, eEnd=eh+em/60;
         if(s>=h&&s<h+1){
           const top=Math.round((s-h)*PX);
-          const ht=Math.max(18,Math.round((e-s)*PX)-2);
+          const ht=Math.max(18,Math.round((eEnd-s)*PX)-2);
           const isOwner=ev.created_by===MEMBER.id;
           const isPriv=ev.is_private&&!isOwner;
           const bl=document.createElement("div"); bl.className="bblock";
-          bl.style.cssText=`top:${top}px;height:${ht}px;background:rgba(59,130,246,.18);border-left:3px solid #3b82f6;z-index:2;left:28%;right:3px;`;
+          bl.style.cssText=`top:${top}px;height:${ht}px;background:rgba(59,130,246,.22);border-left:3px solid #3b82f6;z-index:2;`;
           bl.innerHTML=`<div class="bt" style="color:#93c5fd">${isPriv?"🔒 Privado":ev.title}</div><div class="bm">${ev.start_time.slice(0,5)}–${ev.end_time.slice(0,5)}</div>`;
           bl.title=isPriv?"Evento privado":ev.title;
-          bl.onclick=evClick=>{evClick.stopPropagation(); isOwner?openModal(ev):null;};
           bl.style.cursor=isOwner?"pointer":"default";
+          bl.onclick=evClick=>{evClick.stopPropagation();if(isOwner)openModal(ev);};
           cell.appendChild(bl);
         }
       });
