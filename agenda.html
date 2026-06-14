@@ -226,19 +226,6 @@ textarea{resize:vertical}
       </div>
     </div>
 
-    <div class="field" style="margin-bottom:13px">
-      <label>Dias <span style="text-transform:none;font-weight:400;color:var(--t2)">— clique para selecionar múltiplos</span></label>
-      <div id="evDayPills" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
-        <button type="button" class="dpill" data-dow="1">Seg</button>
-        <button type="button" class="dpill" data-dow="2">Ter</button>
-        <button type="button" class="dpill" data-dow="3">Qua</button>
-        <button type="button" class="dpill" data-dow="4">Qui</button>
-        <button type="button" class="dpill" data-dow="5">Sex</button>
-        <button type="button" class="dpill" data-dow="6">Sáb</button>
-        <button type="button" class="dpill" data-dow="0">Dom</button>
-      </div>
-    </div>
-
     <div class="frow" style="margin-bottom:13px">
       <div class="field">
         <label class="cbpill" style="border:none;padding:0">
@@ -256,10 +243,24 @@ textarea{resize:vertical}
       <label>Recorrência</label>
       <select id="evRecurrence">
         <option value="none">Não se repete</option>
+        <option value="weekdays">Dias da semana (selecionar)</option>
         <option value="daily">Diário</option>
-        <option value="weekly">Semanal</option>
-        <option value="monthly">Mensal</option>
+        <option value="weekly">Semanal neste dia</option>
+        <option value="monthly">Mensal neste dia</option>
       </select>
+    </div>
+
+    <!-- Aparece quando "Dias da semana" é selecionado -->
+    <div id="evWeekdaysField" style="display:none;margin-bottom:13px">
+      <div id="evDayPills" style="display:flex;gap:6px;flex-wrap:wrap">
+        <button type="button" class="dpill" data-dow="1">Seg</button>
+        <button type="button" class="dpill" data-dow="2">Ter</button>
+        <button type="button" class="dpill" data-dow="3">Qua</button>
+        <button type="button" class="dpill" data-dow="4">Qui</button>
+        <button type="button" class="dpill" data-dow="5">Sex</button>
+        <button type="button" class="dpill" data-dow="6">Sáb</button>
+        <button type="button" class="dpill" data-dow="0">Dom</button>
+      </div>
     </div>
 
     <div class="field" style="margin-bottom:13px;display:none" id="recurUntilField">
@@ -418,14 +419,24 @@ function initUI(){
   };
 
   document.getElementById("evRecurrence").onchange=(e)=>{
-    const field=document.getElementById("recurUntilField");
+    const val=e.target.value;
     const isNew=!document.getElementById("evId").value;
-    if(e.target.value==="none"||!isNew){field.style.display="none";return;}
-    field.style.display="";
+    const untilField=document.getElementById("recurUntilField");
+    const weekdaysField=document.getElementById("evWeekdaysField");
+    // Mostra pills só para "Dias da semana"
+    weekdaysField.style.display = val==="weekdays" ? "" : "none";
+    // Mostra "Repetir até" para qualquer opção com recorrência
+    if(val==="none"){
+      untilField.style.display="none";
+      return;
+    }
+    untilField.style.display="";
+    if(!isNew)return; // ao editar, não sobrescreve a data
     const base=document.getElementById("evDate").value||todayISO();
     let until;
-    if(e.target.value==="daily")until=addDays(base,30);
-    else if(e.target.value==="weekly")until=addMonths(base,3);
+    if(val==="daily")until=addDays(base,30);
+    else if(val==="weekdays")until=addMonths(base,1);
+    else if(val==="weekly")until=addMonths(base,3);
     else until=addMonths(base,6);
     document.getElementById("evRecurUntil").value=until;
   };
@@ -976,23 +987,9 @@ function initModal(){
     picker.appendChild(sw);
   });
 
-  // Day pills — sincroniza com o campo data
+  // Day pills — toggle simples (só aparecem quando recorrência = "Dias da semana")
   document.querySelectorAll("#evDayPills .dpill").forEach(pill=>{
-    pill.onclick=()=>{
-      pill.classList.toggle("on");
-      // Se só um pill ativo, atualiza o campo data para aquele dia da semana atual
-      const active=[...document.querySelectorAll("#evDayPills .dpill.on")];
-      if(active.length===1){
-        const dow=parseInt(active[0].dataset.dow);
-        const monday=weekMonday();
-        const offset=dow===0?6:dow-1;
-        document.getElementById("evDate").value=addDays(monday,offset);
-      }
-    };
-  });
-  // Quando a data muda manualmente, sincroniza o pill ativo
-  document.getElementById("evDate").addEventListener("change",e=>{
-    syncDayPillsToDate(e.target.value);
+    pill.onclick=()=>pill.classList.toggle("on");
   });
 
   document.getElementById("evClose").onclick=closeModal;
@@ -1057,7 +1054,7 @@ function initModal(){
     if(!isAllDay && start && end && toMin(start)>=toMin(end)){toast("⚠️ Horário de fim deve ser após o início.");return;}
 
     const attIds=[...document.querySelectorAll("#evAttendees input:checked")].map(i=>i.value);
-    // Dias selecionados (pills) — para novo evento pode criar em múltiplos dias
+    // Dias selecionados (só relevante quando recorrência = "Dias da semana")
     const activePills=[...document.querySelectorAll("#evDayPills .dpill.on")];
     const selectedDows=activePills.map(p=>parseInt(p.dataset.dow));
     document.getElementById("evSave").disabled=true;
@@ -1083,67 +1080,62 @@ function initModal(){
         if(upErr) throw new Error(upErr.message||"Erro ao atualizar evento.");
         await _db.from("event_attendees").delete().eq("event_id",id);
         if(attIds.length) await _db.from("event_attendees").insert(attIds.map(uid=>({event_id:evId,team_member_id:uid})));
+        toast("✅ Evento atualizado!");
+        closeModal(); refreshCurrentView();
       } else {
-        // Criação — se múltiplos dias selecionados, cria um evento por dia
-        const monday=weekMonday();
-        const dates=selectedDows.length>0
-          ? selectedDows.map(dow=>addDays(monday, dow===0?6:dow-1))
-          : [date]; // fallback para a data do campo
+        // Criação — calcula todas as datas a criar
+        let dates=[];
+        if(recurrence==="weekdays"){
+          // Gera todas as datas entre `date` e `recurUntil` que caem nos dias selecionados
+          if(!selectedDows.length){toast("⚠️ Selecione ao menos um dia da semana.");document.getElementById("evSave").disabled=false;return;}
+          const until=recurUntil||addMonths(date,1);
+          let cursor=new Date(date+"T00:00:00");
+          const end=new Date(until+"T00:00:00");
+          while(cursor<=end&&dates.length<180){
+            if(selectedDows.includes(cursor.getDay()))
+              dates.push(cursor.toISOString().slice(0,10));
+            cursor.setDate(cursor.getDate()+1);
+          }
+        }else if(recurrence==="none"){
+          dates=[date];
+        }else{
+          // daily / weekly / monthly — começa com a data base, depois gera ocorrências
+          dates=[date];
+        }
+
         const rows=dates.map(d=>({...evData,event_date:d,created_by:MEMBER.id}));
         const{data:created,error:insErr}=await _db.from("events").insert(rows).select();
-        if(insErr) throw new Error(insErr.message||"Erro ao salvar evento. Verifique as permissões do banco.");
+        if(insErr) throw new Error(insErr.message||"Erro ao salvar evento.");
         evId=(created||[])[0]?.id;
         if(attIds.length&&created){
           const attRows=[];
           created.forEach(ev=>attIds.forEach(uid=>attRows.push({event_id:ev.id,team_member_id:uid})));
           await _db.from("event_attendees").insert(attRows);
         }
-        // Recorrência a partir do primeiro evento
+
+        // Recorrência diária/semanal/mensal (só para eventos base únicos)
         let extra=0;
-        if(recurrence!=="none" && recurUntil && recurUntil>date && created){
+        if(recurrence!=="none"&&recurrence!=="weekdays"&&recurUntil&&recurUntil>date){
           const step=recurrence==="daily"?d=>addDays(d,1):recurrence==="weekly"?d=>addDays(d,7):d=>addMonths(d,1);
-          const allOcc=[];
-          created.forEach(baseEv=>{
-            let cursor=baseEv.event_date;
-            for(let n=0;n<60;n++){cursor=step(cursor);if(cursor>recurUntil)break;allOcc.push({...evData,event_date:cursor,created_by:MEMBER.id});}
-          });
-          if(allOcc.length){
-            const{data:recurCreated,error:recurErr}=await _db.from("events").insert(allOcc).select();
-            if(recurErr)console.warn("Aviso repetições:",recurErr.message);
-            if(recurCreated&&attIds.length){
-              const attRows=[];
-              recurCreated.forEach(ev=>attIds.forEach(uid=>attRows.push({event_id:ev.id,team_member_id:uid})));
-              await _db.from("event_attendees").insert(attRows);
-            }
-            extra=(recurCreated||[]).length;
+          const occ=[]; let cur=date;
+          for(let n=0;n<180;n++){cur=step(cur);if(cur>recurUntil)break;occ.push({...evData,event_date:cur,created_by:MEMBER.id});}
+          if(occ.length){
+            const{data:rc,error:re}=await _db.from("events").insert(occ).select();
+            if(re)console.warn("Repetições:",re.message);
+            if(rc&&attIds.length){const ar=[];rc.forEach(e=>attIds.forEach(u=>ar.push({event_id:e.id,team_member_id:u})));await _db.from("event_attendees").insert(ar);}
+            extra=(rc||[]).length;
           }
         }
-        const daysCount=dates.length;
-        toast(daysCount>1
-          ? `✅ Evento criado em ${daysCount} dias!`+(extra?` + ${extra} repetições`:"")
-          : (extra?`✅ Evento criado com ${extra} repetições!`:"✅ Evento criado!"));
+        const total=dates.length+extra;
+        toast(total>1?`✅ ${total} eventos criados!`:"✅ Evento criado!");
         closeModal(); refreshCurrentView();
-        return; // saída antecipada — já salvamos tudo
       }
-      // Edição: toast de confirmação
-      toast("✅ Evento atualizado!");
-      closeModal();
-      refreshCurrentView();
     }catch(e){
       console.error("Erro ao salvar evento:",e);
       toast("❌ "+e.message);
     }
     finally{document.getElementById("evSave").disabled=false;}
   };
-}
-
-function syncDayPillsToDate(iso){
-  if(!iso)return;
-  const dow=new Date(iso+"T00:00:00").getDay();
-  document.querySelectorAll("#evDayPills .dpill").forEach(p=>{
-    const match=parseInt(p.dataset.dow)===dow;
-    p.classList.toggle("on",match);
-  });
 }
 
 function openModal(ev=null, presetDate=null, presetTime=null){
@@ -1153,8 +1145,8 @@ function openModal(ev=null, presetDate=null, presetTime=null){
   document.getElementById("evTitle").style.borderColor = "";
   document.getElementById("evDate").value = ev ? ev.event_date : (presetDate || todayISO());
   document.getElementById("evDate").style.borderColor = "";
-  // Sincroniza pills com a data
-  syncDayPillsToDate(document.getElementById("evDate").value);
+  // Reset pills — nenhum selecionado por padrão (usuário escolhe ao selecionar "Dias da semana")
+  document.querySelectorAll("#evDayPills .dpill").forEach(p=>p.classList.remove("on"));
   const defStart = presetTime || "09:00";
   const defEnd = addMinToTime(defStart, 60);
   document.getElementById("evStart").value = ev ? ev.start_time.slice(0,5) : defStart;
@@ -1166,6 +1158,7 @@ function openModal(ev=null, presetDate=null, presetTime=null){
   document.getElementById("evRecurrence").value = ev ? (ev.recurrence || "none") : "none";
   document.getElementById("evRecurUntil").value = "";
   document.getElementById("recurUntilField").style.display = "none";
+  document.getElementById("evWeekdaysField").style.display = "none";
 
   // Restaura cor selecionada
   const activeColor = (ev&&ev.color) ? ev.color : "#3b82f6";
