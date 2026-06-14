@@ -884,8 +884,14 @@ function initModal(){
     sw.style.cssText=`width:24px;height:24px;border-radius:50%;background:${c.hex};border:2.5px solid transparent;cursor:pointer;flex-shrink:0;transition:transform .12s,border-color .12s;`;
     sw.title=c.label; sw.dataset.color=c.hex;
     sw.onclick=()=>{
-      picker.querySelectorAll("button").forEach(b=>b.style.borderColor="transparent");
-      sw.style.borderColor="#fff"; sw.style.transform="scale(1.2)";
+      picker.querySelectorAll("button").forEach(b=>{
+        b.style.borderColor="transparent";
+        b.style.transform="";
+        delete b.dataset.selected;
+      });
+      sw.style.borderColor="#fff";
+      sw.style.transform="scale(1.2)";
+      sw.dataset.selected="1";
     };
     picker.appendChild(sw);
   });
@@ -916,8 +922,8 @@ function initModal(){
     const isPrivate=document.getElementById("evPrivate").checked;
     const recurrence=document.getElementById("evRecurrence").value;
     const recurUntil=document.getElementById("evRecurUntil").value;
-    // Cor selecionada (botão com borda branca)
-    const selSwatch=document.querySelector("#evColorPicker button[style*='#fff']");
+    // Cor selecionada via data-selected
+    const selSwatch=document.querySelector("#evColorPicker button[data-selected='1']");
     const color=selSwatch?selSwatch.dataset.color:"#3b82f6";
 
     // Visual validation — highlight fields vazios
@@ -1021,6 +1027,7 @@ function openModal(ev=null, presetDate=null, presetTime=null){
     const match=b.dataset.color===activeColor;
     b.style.borderColor=match?"#fff":"transparent";
     b.style.transform=match?"scale(1.2)":"";
+    if(match) b.dataset.selected="1"; else delete b.dataset.selected;
   });
 
   modalTitle.textContent = ev ? "Editar Evento" : "Novo Evento";
