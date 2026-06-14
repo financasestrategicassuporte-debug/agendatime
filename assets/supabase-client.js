@@ -246,3 +246,30 @@ async function fetchUpcomingEvents(daysAhead = 14) {
   if (error) throw error;
   return data || [];
 }
+
+/* Busca todos os eventos do time numa faixa de datas [startISO, endISO] */
+async function fetchAllWeekEvents(startISO, endISO) {
+  const { data, error } = await db
+    .from("events")
+    .select("*, event_attendees(team_member_id)")
+    .gte("event_date", startISO)
+    .lte("event_date", endISO)
+    .order("event_date")
+    .order("start_time");
+  if (error) { console.warn("fetchAllWeekEvents:", error.message); return []; }
+  return data || [];
+}
+
+/* Data da segunda-feira da semana atual */
+function getWeekMonday() {
+  const d = new Date();
+  const diff = d.getDay() === 0 ? -6 : 1 - d.getDay();
+  const m = new Date(d); m.setDate(m.getDate() + diff);
+  return m.toISOString().slice(0, 10);
+}
+
+/* Adiciona N dias a uma data ISO */
+function addDaysISO(iso, n) {
+  const d = new Date(iso + "T00:00:00"); d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+}
