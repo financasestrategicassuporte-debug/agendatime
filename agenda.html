@@ -287,7 +287,17 @@ textarea{resize:vertical}
       </div>
     </div>
 
+    <div id="evDeleteConfirm" style="display:none;background:#1a0e0e;border:1px solid #3a1515;border-radius:var(--r8);padding:12px;margin-bottom:12px">
+      <p style="font-size:12px;color:var(--t2);margin-bottom:10px">Este é um evento recorrente. O que deseja excluir?</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn dan" style="flex:1;font-size:12px" id="evDelOne">Só este</button>
+        <button class="btn dan" style="flex:1;font-size:12px;background:#3a0808;border-color:#5a1515" id="evDelAll">Toda a série</button>
+        <button class="btn sec" style="font-size:12px" id="evDelBack">↩ Voltar</button>
+      </div>
+    </div>
+
     <div class="mfoot">
+      <button class="btn dan" style="font-size:12px;padding:8px 14px;display:none" id="evDelete">Excluir</button>
       <button class="btn sec" style="flex:1" id="evCancel">Cancelar</button>
       <button class="btn pri" style="flex:1" id="evSave">Salvar</button>
     </div>
@@ -342,6 +352,7 @@ let MEMBER=null, ALL_MEMBERS=[], CURRENT_VIEW="week", SEARCH_QUERY="", ALL_EVENT
 let CAL_MONTH=new Date(); CAL_MONTH.setDate(1);
 let SELECTED_DAY=null, MONTH_EVENTS=[];
 let NOTIF_ENABLED=false, _reminderTimers=[], _conflictTimer=null;
+let _modalEvent=null; // evento sendo editado no modal
 
 async function init(){
   const slug=new URLSearchParams(location.search).get("p");
@@ -791,11 +802,63 @@ function buildEventCard(ev,onChange){
     const eb=document.createElement("button"); eb.className="btn sec"; eb.style.fontSize="11px"; eb.textContent="Editar";
     eb.onclick=()=>openModal(ev);
     const db=document.createElement("button"); db.className="btn dan"; db.textContent="Excluir";
-    db.onclick=async()=>{if(!confirm(`Excluir "${ev.title}"?`))return;await _db.from("event_attendees").delete().eq("event_id",ev.id);await _db.from("events").delete().eq("id",ev.id);toast("Evento excluído.");onChange&&onChange();};
+    db.onclick=()=>askDeleteEvent(ev, onChange);
     side.appendChild(eb); side.appendChild(db);
   }else{const b=document.createElement("span");b.className="role-tag";b.textContent="Convidado(a)";side.appendChild(b);}
   card.appendChild(side);
   return card;
+}
+
+/* Pergunta se exclui só este ou toda a série (se recorrente) */
+function askDeleteEvent(ev, onDone){
+  const isRecurring = ev.recurrence && ev.recurrence !== "none";
+  if(!isRecurring){
+    if(!confirm(`Excluir "${ev.title}"?`))return;
+    doDeleteEvent(ev,"single",onDone);
+    return;
+  }
+  // Cria um mini-dialog inline no card
+  const existing=document.getElementById("_delDialog");
+  if(existing)existing.remove();
+  const dlg=document.createElement("div"); dlg.id="_delDialog";
+  dlg.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:2000;padding:20px";
+  dlg.innerHTML=`<div style="background:var(--s1);border:1px solid var(--l2);border-radius:var(--r20);padding:22px;max-width:340px;width:100%">
+    <p style="font-family:var(--fd);font-size:16px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Excluir evento</p>
+    <p style="font-size:13px;color:var(--t2);margin-bottom:18px">Este é um evento recorrente. O que deseja excluir?</p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button id="_delOne" class="btn dan" style="width:100%">Só este (${fmtDateDisplay(ev.event_date)})</button>
+      <button id="_delAll" class="btn dan" style="width:100%;background:#3a0808;border-color:#5a1515">Toda a série (${ev.title})</button>
+      <button id="_delNo" class="btn sec" style="width:100%">Cancelar</button>
+    </div>
+  </div>`;
+  document.body.appendChild(dlg);
+  document.getElementById("_delOne").onclick=()=>{dlg.remove();doDeleteEvent(ev,"single",onDone);};
+  document.getElementById("_delAll").onclick=()=>{dlg.remove();doDeleteEvent(ev,"series",onDone);};
+  document.getElementById("_delNo").onclick=()=>dlg.remove();
+  dlg.onclick=e=>{if(e.target===dlg)dlg.remove();};
+}
+
+async function doDeleteEvent(ev, mode, onDone){
+  if(mode==="series"){
+    // Busca todos os eventos da série pelo mesmo título+criador+horário+recorrência
+    const{data:series}=await _db.from("events").select("id")
+      .eq("created_by",ev.created_by).eq("title",ev.title)
+      .eq("start_time",ev.start_time).eq("end_time",ev.end_time)
+      .neq("recurrence","none");
+    const ids=(series||[]).map(e=>e.id);
+    if(ids.length){
+      await _db.from("event_attendees").delete().in("event_id",ids);
+      const{error}=await _db.from("events").delete().in("id",ids);
+      if(error){toast("❌ "+fmtError(error));return;}
+    }
+    toast(`✅ ${ids.length} evento(s) da série excluídos!`);
+  }else{
+    await _db.from("event_attendees").delete().eq("event_id",ev.id);
+    const{error}=await _db.from("events").delete().eq("id",ev.id);
+    if(error){toast("❌ "+fmtError(error));return;}
+    toast("✅ Evento excluído!");
+  }
+  if(onDone) onDone(); else refreshCurrentView();
 }
 
 function toMin(t){const[h,m]=t.split(":").map(Number);return h*60+m;}
@@ -900,6 +963,29 @@ function initModal(){
   document.getElementById("evCancel").onclick=closeModal;
   document.getElementById("evModal").addEventListener("click",e=>{if(e.target===document.getElementById("evModal"))closeModal();});
   document.getElementById("toggleNP").onclick=()=>{const b=document.getElementById("npBox");b.style.display=b.style.display==="none"?"block":"none";};
+
+  // Botão excluir no modal
+  document.getElementById("evDelete").onclick=()=>{
+    if(!_modalEvent)return;
+    const isRecurring=_modalEvent.recurrence&&_modalEvent.recurrence!=="none";
+    if(isRecurring){
+      document.getElementById("evDeleteConfirm").style.display="";
+    }else{
+      if(!confirm(`Excluir "${_modalEvent.title}"?`))return;
+      doDeleteEvent(_modalEvent,"single");
+    }
+  };
+  document.getElementById("evDelOne").onclick=()=>{
+    document.getElementById("evDeleteConfirm").style.display="none";
+    doDeleteEvent(_modalEvent,"single");
+  };
+  document.getElementById("evDelAll").onclick=()=>{
+    document.getElementById("evDeleteConfirm").style.display="none";
+    doDeleteEvent(_modalEvent,"series");
+  };
+  document.getElementById("evDelBack").onclick=()=>{
+    document.getElementById("evDeleteConfirm").style.display="none";
+  };
   
   document.getElementById("addNpBtn").onclick=async()=>{
     const name=document.getElementById("npName").value.trim();
@@ -1030,7 +1116,11 @@ function openModal(ev=null, presetDate=null, presetTime=null){
     if(match) b.dataset.selected="1"; else delete b.dataset.selected;
   });
 
+  _modalEvent = ev;
   modalTitle.textContent = ev ? "Editar Evento" : "Novo Evento";
+  // Mostra botão excluir só ao editar
+  document.getElementById("evDelete").style.display = ev ? "" : "none";
+  document.getElementById("evDeleteConfirm").style.display = "none";
   document.getElementById("npBox").style.display="none";
   document.getElementById("conflictBox").classList.remove("show");
   document.getElementById("evAllDay").dispatchEvent(new Event('change'));
@@ -1041,7 +1131,7 @@ function openModal(ev=null, presetDate=null, presetTime=null){
   scheduleConflictCheck();
 }
 
-function closeModal(){document.getElementById("evModal").classList.remove("open");}
+function closeModal(){document.getElementById("evModal").classList.remove("open");_modalEvent=null;document.getElementById("evDeleteConfirm").style.display="none";}
 
 function renderCheckboxes(selectedIds=[]){
   const box=document.getElementById("evAttendees");
