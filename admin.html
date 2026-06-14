@@ -237,16 +237,19 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 /* ── Config ── */
-const SUPABASE_URL = "https://SEU_PROJETO.supabase.co";
-const SUPABASE_KEY = "SUA_ANON_KEY";
+const SUPABASE_URL = "https://vsnfqohptlporesdfrtx.supabase.co";
+const SUPABASE_KEY = "sb_publishable_BGdjIkL0pTXSOTyIB6wxAg_zlao5meF";
 const ADMIN_PASS   = "Madodo1*";
 
-const _db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const _db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+});
 
 /* ── Constantes ── */
 const ROLES = [
-  {key:"gestor",label:"Gestor"},{key:"consultor",label:"Consultor"},
-  {key:"atendimento",label:"Atendimento"},{key:"operacional",label:"Operacional"}
+  {key:"sdr",label:"SDR"},
+  {key:"closer",label:"Closer"},
+  {key:"customer_success",label:"Customer Success"}
 ];
 const BLOCK_TYPES  = {prospeccao:"Prospecção",followup:"Follow-up",reuniao:"Reunião",admin:"Admin",treinamento:"Treinamento",outros:"Outros"};
 const BLOCK_COLORS = {prospeccao:"#3ddc68",followup:"#3b82f6",reuniao:"#f97316",admin:"#a855f7",treinamento:"#ec4899",outros:"#6b7280"};
@@ -327,14 +330,27 @@ document.getElementById("modalSaveBtn").onclick=async()=>{
   const btn=document.getElementById("modalSaveBtn"); btn.disabled=true;
   try{
     for(const day of days){
-      await _db.from("routine_blocks").insert([{team_member_id:_modMember,day_of_week:day,start_time:start,end_time:end,title,block_type:_selType}]);
+      const{error}=await _db.from("routine_blocks").insert([{team_member_id:_modMember,day_of_week:day,start_time:start,end_time:end,title,block_type:_selType}]);
+      if(error) throw new Error(fmtError(error));
     }
     toast(`Bloco${days.length>1?"s":""} salvo${days.length>1?"s":""}!`);
     closeModal();
     if(_modContainer)await refreshBlocks(_modMember,_modContainer);
-  }catch(e){toast("Erro: "+e.message);}
+  }catch(e){toast("❌ "+e.message);}
   finally{btn.disabled=false;}
 };
+
+/* ── Utilitário de erro Supabase ── */
+function fmtError(e){
+  if(!e) return "erro desconhecido";
+  if(typeof e === "string") return e;
+  // Tenta extrair mensagem legível de diferentes estruturas do client
+  const candidates=[e.message,e.details,e.hint,e.error_description,e.error];
+  for(const c of candidates){
+    if(c && typeof c === "string" && c !== "[object Object]") return c;
+  }
+  try{return JSON.stringify(e);}catch{return String(e);}
+}
 
 /* ── Panel ── */
 function initPanel(){
@@ -343,21 +359,43 @@ function initPanel(){
     const name=document.getElementById("newName").value.trim();
     const role=document.getElementById("newRole").value;
     if(!name){toast("Digite o nome.");return;}
-    try{
-      await _db.from("team_members").insert([{name,role,initials:initials(name),slug:slug(name)}]);
-      document.getElementById("newName").value="";
-      toast("Pessoa adicionada!"); loadMembers();
-    }catch(e){toast("Erro: "+e.message);}
+    const btn=document.getElementById("addMemberBtn"); btn.disabled=true;
+    const{data,error}=await _db.from("team_members").insert([{name,role,initials:initials(name),slug:slug(name)}]).select().single();
+    btn.disabled=false;
+    if(error){
+      console.error("INSERT team_members:",JSON.stringify(error));
+      showError(fmtError(error)); return;
+    }
+    document.getElementById("newName").value="";
+    toast("✅ Pessoa adicionada!"); loadMembers();
   };
   loadMembers();
+}
+
+function showError(msg){
+  const isRLS = msg.toLowerCase().includes("security") || msg.toLowerCase().includes("permission") || msg.toLowerCase().includes("policy") || msg.toLowerCase().includes("rls") || msg.toLowerCase().includes("denied") || msg.toLowerCase().includes("jwt");
+  const list=document.getElementById("membersList");
+  list.innerHTML=`<div class="empty" style="text-align:left;line-height:1.8">
+    <p style="font-weight:600;color:#f87171;margin-bottom:8px">❌ Erro do banco de dados:</p>
+    <p style="font-family:monospace;font-size:12px;background:var(--s2);padding:8px;border-radius:6px;word-break:break-all;color:#fca5a5;margin-bottom:14px">${msg}</p>
+    ${isRLS?`
+    <p style="font-size:13px;margin-bottom:8px"><strong>Causa provável: RLS (Row Level Security) bloqueando o acesso anônimo.</strong></p>
+    <p style="font-size:12px;color:var(--t2);margin-bottom:8px">Acesse o <a href="https://supabase.com/dashboard" target="_blank" style="color:var(--green)">Supabase Dashboard → SQL Editor</a> e rode:</p>
+    <pre style="font-size:11px;background:#0b1a0e;border:1px solid #1a3a1a;padding:10px;border-radius:6px;overflow-x:auto">ALTER TABLE team_members    DISABLE ROW LEVEL SECURITY;
+ALTER TABLE routine_blocks  DISABLE ROW LEVEL SECURITY;
+ALTER TABLE events          DISABLE ROW LEVEL SECURITY;
+ALTER TABLE event_attendees DISABLE ROW LEVEL SECURITY;</pre>
+    <p style="font-size:12px;color:var(--t2);margin-top:8px">Depois recarregue esta página.</p>
+    `:`<p style="font-size:12px;color:var(--t2)">Verifique a conexão com o Supabase e recarregue.</p>`}
+  </div>`;
 }
 
 async function loadMembers(){
   const list=document.getElementById("membersList");
   list.innerHTML=`<p class="muted">Carregando...</p>`;
   const{data,error}=await _db.from("team_members").select("*").order("name");
-  if(error||!data){list.innerHTML=`<div class="empty">Erro ao carregar.</div>`;return;}
-  if(!data.length){list.innerHTML=`<div class="empty">Nenhuma pessoa cadastrada ainda.</div>`;return;}
+  if(error){console.error("SELECT team_members:",JSON.stringify(error));showError(fmtError(error));return;}
+  if(!data||!data.length){list.innerHTML=`<div class="empty">Nenhuma pessoa cadastrada ainda.</div>`;return;}
   list.innerHTML="";
   for(const m of data)list.appendChild(await buildCard(m));
 }
@@ -377,14 +415,18 @@ async function buildCard(m){
   const ne=document.createElement("input"); ne.className="nedit"; ne.value=m.name;
   ne.onblur=async()=>{
     const n=ne.value.trim(); if(!n||n===m.name)return;
-    await _db.from("team_members").update({name:n,initials:initials(n)}).eq("id",m.id);
+    const{error}=await _db.from("team_members").update({name:n,initials:initials(n)}).eq("id",m.id);
+    if(error){toast("❌ "+fmtError(error));ne.value=m.name;return;}
     m.name=n; av.textContent=initials(n); toast("Nome atualizado.");
   };
 
   const row2=document.createElement("div"); row2.style.cssText="display:flex;align-items:center;gap:7px;margin-top:5px;";
   const rs=document.createElement("select"); rs.style.cssText="width:auto;padding:4px 26px 4px 7px;font-size:12px;background:#1a1e1a;border:1px solid #2f342f;border-radius:6px;color:#e8ede8;appearance:none;";
   rs.innerHTML=ROLES.map(r=>`<option value="${r.key}"${r.key===m.role?" selected":""}>${r.label}</option>`).join("");
-  rs.onchange=async()=>{await _db.from("team_members").update({role:rs.value}).eq("id",m.id);toast("Cargo atualizado.");};
+  rs.onchange=async()=>{
+    const{error}=await _db.from("team_members").update({role:rs.value}).eq("id",m.id);
+    if(error)toast("❌ "+fmtError(error)); else toast("Cargo atualizado.");
+  };
 
   const cb=document.createElement("button"); cb.className="btn ghost"; cb.textContent="Copiar link";
   cb.onclick=()=>{
@@ -398,7 +440,8 @@ async function buildCard(m){
   const del=document.createElement("button"); del.className="btn dan"; del.textContent="Excluir";
   del.onclick=async()=>{
     if(!confirm(`Excluir ${m.name}?`))return;
-    await _db.from("team_members").delete().eq("id",m.id);
+    const{error}=await _db.from("team_members").delete().eq("id",m.id);
+    if(error){toast("❌ "+fmtError(error));return;}
     toast("Excluído."); loadMembers();
   };
   head.appendChild(mid); head.appendChild(del);
