@@ -453,18 +453,37 @@ async function renderRoutine(){
     item.innerHTML=`<span class="leg-dot" style="background:${col}"></span>${BLOCK_TYPES[t]}`;
     legend.appendChild(item);
   });
+  // Legenda: eventos ficam em azul
+  const evLeg=document.createElement("div"); evLeg.className="leg-item";
+  evLeg.innerHTML=`<span class="leg-dot" style="background:#3b82f6"></span>Evento`;
+  legend.appendChild(evLeg);
   sec.appendChild(legend);
+
   const{data:blocks}=await _db.from("routine_blocks").select("*").eq("team_member_id",MEMBER.id);
+
+  // Busca eventos desta semana para sobrepor no board
+  const monday=weekMonday();
+  const saturday=addDays(monday,5);
+  const weekEvs=await fetchEventsInRange(monday,saturday);
+
   const wrap=document.createElement("div"); wrap.className="board-wrap";
-  wrap.appendChild(buildBoard(blocks||[], new Date().getDay()));
+  wrap.appendChild(buildBoard(blocks||[], new Date().getDay(), weekEvs));
   sec.appendChild(wrap);
   c.appendChild(sec);
 }
 
-function buildBoard(blocks,todayDay){
+function buildBoard(blocks,todayDay,weekEvents=[]){
   const HOURS=[]; for(let h=7;h<=20;h++)HOURS.push(h);
   const PX=42, days=[1,2,3,4,5,6];
-  const monday=weekMonday(); // ISO date of this week's Monday
+  const monday=weekMonday();
+
+  // Agrupa eventos por day_of_week (1=Seg...6=Sáb)
+  const evsByDay={1:[],2:[],3:[],4:[],5:[],6:[]};
+  weekEvents.forEach(ev=>{
+    const dow=new Date(ev.event_date+"T00:00:00").getDay(); // 0=Dom ... 6=Sáb
+    if(dow>=1&&dow<=6) evsByDay[dow].push(ev);
+  });
+
   const grid=document.createElement("div"); grid.className="board";
   grid.style.gridTemplateColumns="40px repeat(6,1fr)";
   const corner=document.createElement("div"); corner.className="bc hd"; grid.appendChild(corner);
@@ -474,10 +493,11 @@ function buildBoard(blocks,todayDay){
     days.forEach(d=>{
       const cell=document.createElement("div"); cell.className="bc day"; cell.style.height=PX+"px";
       cell.title=`Criar evento: ${DAY_SHORT[d]} ${h}h`;
-      // click → open new-event modal for that day+hour
       const dayISO=addDays(monday,d-1);
       const presetTime=`${String(h).padStart(2,"0")}:00`;
       cell.onclick=()=>openModal(null,dayISO,presetTime);
+
+      // ── Rotinas fixas ──
       blocks.filter(b=>b.day_of_week===d).forEach(b=>{
         const[sh,sm]=b.start_time.split(":").map(Number);
         const[eh,em]=b.end_time.split(":").map(Number);
@@ -490,10 +510,31 @@ function buildBoard(blocks,todayDay){
           const bl=document.createElement("div"); bl.className="bblock";
           bl.style.cssText=`top:${top}px;height:${ht}px;background:${bg};border-left:3px solid ${col};`;
           bl.innerHTML=`<div class="bt" style="color:${col}">${b.title}</div><div class="bm">${b.start_time.slice(0,5)}–${b.end_time.slice(0,5)}</div>`;
-          bl.onclick=e=>{e.stopPropagation();openModal(null,dayISO,b.start_time.slice(0,5));}; // click on a block still creates
+          bl.onclick=e=>{e.stopPropagation();openModal(null,dayISO,b.start_time.slice(0,5));};
           cell.appendChild(bl);
         }
       });
+
+      // ── Eventos desta semana ──
+      (evsByDay[d]||[]).filter(ev=>!ev.is_all_day).forEach(ev=>{
+        const[sh,sm]=ev.start_time.split(":").map(Number);
+        const[eh,em]=ev.end_time.split(":").map(Number);
+        const s=sh+sm/60, e=eh+em/60;
+        if(s>=h&&s<h+1){
+          const top=Math.round((s-h)*PX);
+          const ht=Math.max(18,Math.round((e-s)*PX)-2);
+          const isOwner=ev.created_by===MEMBER.id;
+          const isPriv=ev.is_private&&!isOwner;
+          const bl=document.createElement("div"); bl.className="bblock";
+          bl.style.cssText=`top:${top}px;height:${ht}px;background:rgba(59,130,246,.18);border-left:3px solid #3b82f6;z-index:2;left:28%;right:3px;`;
+          bl.innerHTML=`<div class="bt" style="color:#93c5fd">${isPriv?"🔒 Privado":ev.title}</div><div class="bm">${ev.start_time.slice(0,5)}–${ev.end_time.slice(0,5)}</div>`;
+          bl.title=isPriv?"Evento privado":ev.title;
+          bl.onclick=evClick=>{evClick.stopPropagation(); isOwner?openModal(ev):null;};
+          bl.style.cursor=isOwner?"pointer":"default";
+          cell.appendChild(bl);
+        }
+      });
+
       grid.appendChild(cell);
     });
   });
