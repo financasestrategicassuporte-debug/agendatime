@@ -43,7 +43,7 @@ function renderLegend(container) {
   });
 }
 
-function renderBoard(blocksByDay, todayDay) {
+function renderBoard(blocksByDay, todayDay, weekEventsByDay = {}) {
   const wrapper = document.createElement("div");
   wrapper.className = "board-wrapper";
 
@@ -84,13 +84,15 @@ function renderBoard(blocksByDay, todayDay) {
     col.style.height = BOARD_HEIGHT + "px";
 
     const blocks = (blocksByDay && blocksByDay[day]) || [];
+    const dayEvs = (weekEventsByDay && weekEventsByDay[day]) || [];
 
-    if (blocks.length === 0) {
+    if (blocks.length === 0 && dayEvs.length === 0) {
       const off = document.createElement("div");
       off.className = "day-off";
       off.textContent = "Livre";
       col.appendChild(off);
     } else {
+      // Rotinas fixas
       blocks.forEach(block => {
         const el = document.createElement("div");
         el.className = "block type-" + block.block_type;
@@ -103,6 +105,22 @@ function renderBoard(blocksByDay, todayDay) {
 
         el.appendChild(time);
         el.appendChild(document.createTextNode(block.title));
+        col.appendChild(el);
+      });
+
+      // Eventos da semana (azul, sobre as rotinas)
+      dayEvs.filter(ev => !ev.is_all_day).forEach(ev => {
+        const top = topPx(ev.start_time);
+        const ht = Math.max(20, heightPx(ev.start_time, ev.end_time));
+        if (top < 0 || top > BOARD_HEIGHT) return; // fora do range
+        const evColor = ev.color || "#3b82f6";
+        const el = document.createElement("div");
+        el.style.cssText = `position:absolute;left:4px;right:4px;top:${top}px;height:${ht}px;` +
+          `background:${evColor}33;border-left:3px solid ${evColor};border-radius:4px;` +
+          `padding:3px 5px;font-size:10px;font-weight:600;overflow:hidden;z-index:2;box-sizing:border-box;`;
+        el.innerHTML = `<span style="display:block;color:${evColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ev.is_private ? "🔒 Privado" : ev.title}</span>` +
+          `<span style="font-size:9px;opacity:.7;font-family:monospace">${ev.start_time.slice(0,5)}–${ev.end_time.slice(0,5)}</span>`;
+        el.title = ev.is_private ? "Evento privado" : ev.title;
         col.appendChild(el);
       });
     }
