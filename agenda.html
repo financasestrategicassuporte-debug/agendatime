@@ -294,7 +294,9 @@ textarea{resize:vertical}
 // CONFIGURAÇÃO SUPABASE
 const SUPABASE_URL = "https://vsnfqohptlporesdfrtx.supabase.co";
 const SUPABASE_KEY = "sb_publishable_BGdjIkL0pTXSOTyIB6wxAg_zlao5meF";
-const _db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const _db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+});
 
 const ROLES        = [{key:"sdr",label:"SDR"},{key:"closer",label:"Closer"},{key:"customer_success",label:"Customer Success"}];
 const ROLE_LABELS  = Object.fromEntries(ROLES.map(r=>[r.key,r.label]));
