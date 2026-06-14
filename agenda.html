@@ -250,6 +250,11 @@ textarea{resize:vertical}
     </div>
 
     <div class="field" style="margin-bottom:13px">
+      <label>Cor do evento</label>
+      <div id="evColorPicker" style="display:flex;gap:7px;flex-wrap:wrap;margin-top:4px"></div>
+    </div>
+
+    <div class="field" style="margin-bottom:13px">
       <label>Localização</label>
       <input type="text" id="evLocation" placeholder="Sala, link do Zoom..."/>
     </div>
@@ -306,6 +311,19 @@ const BLOCK_BG     = {prospeccao:"rgba(61,220,104,.13)",followup:"rgba(59,130,24
 const DAY_SHORT    = {0:"DOM",1:"SEG",2:"TER",3:"QUA",4:"QUI",5:"SEX",6:"SÁB"};
 const MONTH_NAMES  = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 const REMINDER_MIN_BEFORE = 15;
+const EV_COLORS = [
+  {hex:"#3b82f6",label:"Azul"},
+  {hex:"#22c55e",label:"Verde"},
+  {hex:"#f97316",label:"Laranja"},
+  {hex:"#a855f7",label:"Roxo"},
+  {hex:"#ec4899",label:"Rosa"},
+  {hex:"#ef4444",label:"Vermelho"},
+  {hex:"#eab308",label:"Amarelo"},
+  {hex:"#14b8a6",label:"Teal"},
+  {hex:"#6b7280",label:"Cinza"},
+];
+
+let _dragEvent=null;
 
 function initials(n){return n.trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("").toUpperCase();}
 function slugFromName(n){return n.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");}
@@ -418,7 +436,7 @@ async function render(){
   
   if(CURRENT_VIEW === "week") {
     await renderRoutine();
-    await renderEvents();
+    // Na view semana, eventos já aparecem no board — não duplicamos a lista
   } else if(CURRENT_VIEW === "month") {
     await renderMonthView();
   } else {
@@ -445,23 +463,26 @@ function renderHeader(){
 async function renderRoutine(){
   const c=document.getElementById("content");
   const sec=document.createElement("div"); sec.className="sec-block";
-  const lbl=document.createElement("p"); lbl.className="slabel"; lbl.textContent="Rotina fixa da semana";
-  sec.appendChild(lbl);
+
+  // Cabeçalho com label + botão novo evento
+  const secHead=document.createElement("div"); secHead.style.cssText="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px";
+  const lbl=document.createElement("p"); lbl.className="slabel"; lbl.style.margin="0"; lbl.textContent="Agenda da semana";
+  const nb=document.createElement("button"); nb.className="btn pri"; nb.style.fontSize="12px"; nb.textContent="+ Novo evento"; nb.onclick=()=>openModal();
+  secHead.appendChild(lbl); secHead.appendChild(nb);
+  sec.appendChild(secHead);
+
   const legend=document.createElement("div"); legend.className="legend";
   Object.entries(BLOCK_COLORS).forEach(([t,col])=>{
     const item=document.createElement("div"); item.className="leg-item";
     item.innerHTML=`<span class="leg-dot" style="background:${col}"></span>${BLOCK_TYPES[t]}`;
     legend.appendChild(item);
   });
-  // Legenda: eventos ficam em azul
   const evLeg=document.createElement("div"); evLeg.className="leg-item";
-  evLeg.innerHTML=`<span class="leg-dot" style="background:#3b82f6"></span>Evento`;
+  evLeg.innerHTML=`<span class="leg-dot" style="background:#3b82f6;border:2px solid #93c5fd"></span>Evento`;
   legend.appendChild(evLeg);
   sec.appendChild(legend);
 
   const{data:blocks}=await _db.from("routine_blocks").select("*").eq("team_member_id",MEMBER.id);
-
-  // Busca eventos desta semana para sobrepor no board
   const monday=weekMonday();
   const saturday=addDays(monday,5);
   const weekEvs=await fetchEventsInRange(monday,saturday);
@@ -477,10 +498,10 @@ function buildBoard(blocks,todayDay,weekEvents=[]){
   const PX=42, days=[1,2,3,4,5,6];
   const monday=weekMonday();
 
-  // Agrupa eventos por day_of_week (1=Seg...6=Sáb)
+  // Agrupa eventos por day_of_week 1-6
   const evsByDay={1:[],2:[],3:[],4:[],5:[],6:[]};
   weekEvents.forEach(ev=>{
-    const dow=new Date(ev.event_date+"T00:00:00").getDay(); // 0=Dom ... 6=Sáb
+    const dow=new Date(ev.event_date+"T00:00:00").getDay();
     if(dow>=1&&dow<=6) evsByDay[dow].push(ev);
   });
 
@@ -488,14 +509,33 @@ function buildBoard(blocks,todayDay,weekEvents=[]){
   grid.style.gridTemplateColumns="40px repeat(6,1fr)";
   const corner=document.createElement("div"); corner.className="bc hd"; grid.appendChild(corner);
   days.forEach(d=>{const c=document.createElement("div");c.className="bc hd"+(d===todayDay?" today":"");c.textContent=DAY_SHORT[d];grid.appendChild(c);});
+
   HOURS.forEach(h=>{
     const tl=document.createElement("div"); tl.className="bc tl"; tl.style.height=PX+"px"; tl.textContent=`${h}h`; grid.appendChild(tl);
     days.forEach(d=>{
+      const dayISO=addDays(monday,d-1);
       const cell=document.createElement("div"); cell.className="bc day"; cell.style.height=PX+"px";
       cell.title=`Criar evento: ${DAY_SHORT[d]} ${h}h`;
-      const dayISO=addDays(monday,d-1);
-      const presetTime=`${String(h).padStart(2,"0")}:00`;
-      cell.onclick=()=>openModal(null,dayISO,presetTime);
+      cell.onclick=()=>openModal(null,dayISO,`${String(h).padStart(2,"0")}:00`);
+
+      // ── Drag-and-drop: célula como drop target ──
+      cell.ondragover=e=>{e.preventDefault();cell.style.outline="2px dashed #3b82f6";};
+      cell.ondragleave=()=>{cell.style.outline="";};
+      cell.ondrop=async e=>{
+        e.preventDefault(); cell.style.outline="";
+        if(!_dragEvent)return;
+        const ev=_dragEvent; _dragEvent=null;
+        // Snap: metade superior = :00, metade inferior = :30
+        const rect=cell.getBoundingClientRect();
+        const snap=((e.clientY-rect.top)/PX)>=0.5?30:0;
+        const newStart=`${String(h).padStart(2,"0")}:${String(snap).padStart(2,"0")}`;
+        const dur=toMin(ev.end_time)-toMin(ev.start_time);
+        const newEnd=addMinToTime(newStart,Math.max(dur,30));
+        const{error}=await _db.from("events").update({event_date:dayISO,start_time:newStart,end_time:newEnd}).eq("id",ev.id);
+        if(error){toast("❌ Erro ao mover: "+fmtError(error));return;}
+        toast("✅ Evento movido!");
+        await render();
+      };
 
       // ── Rotinas fixas ──
       blocks.filter(b=>b.day_of_week===d).forEach(b=>{
@@ -510,12 +550,12 @@ function buildBoard(blocks,todayDay,weekEvents=[]){
           const bl=document.createElement("div"); bl.className="bblock";
           bl.style.cssText=`top:${top}px;height:${ht}px;background:${bg};border-left:3px solid ${col};`;
           bl.innerHTML=`<div class="bt" style="color:${col}">${b.title}</div><div class="bm">${b.start_time.slice(0,5)}–${b.end_time.slice(0,5)}</div>`;
-          bl.onclick=e=>{e.stopPropagation();openModal(null,dayISO,b.start_time.slice(0,5));};
+          bl.onclick=ev=>{ev.stopPropagation();openModal(null,dayISO,b.start_time.slice(0,5));};
           cell.appendChild(bl);
         }
       });
 
-      // ── Eventos desta semana ──
+      // ── Eventos ──
       (evsByDay[d]||[]).filter(ev=>!ev.is_all_day).forEach(ev=>{
         const[sh,sm]=ev.start_time.split(":").map(Number);
         const[eh,em]=ev.end_time.split(":").map(Number);
@@ -525,12 +565,20 @@ function buildBoard(blocks,todayDay,weekEvents=[]){
           const ht=Math.max(18,Math.round((eEnd-s)*PX)-2);
           const isOwner=ev.created_by===MEMBER.id;
           const isPriv=ev.is_private&&!isOwner;
+          const evColor=ev.color||"#3b82f6";
+          const evBg=evColor+"33"; // hex + alpha 20%
           const bl=document.createElement("div"); bl.className="bblock";
-          bl.style.cssText=`top:${top}px;height:${ht}px;background:rgba(59,130,246,.22);border-left:3px solid #3b82f6;z-index:2;`;
-          bl.innerHTML=`<div class="bt" style="color:#93c5fd">${isPriv?"🔒 Privado":ev.title}</div><div class="bm">${ev.start_time.slice(0,5)}–${ev.end_time.slice(0,5)}</div>`;
-          bl.title=isPriv?"Evento privado":ev.title;
-          bl.style.cursor=isOwner?"pointer":"default";
+          bl.style.cssText=`top:${top}px;height:${ht}px;background:${evBg};border-left:3px solid ${evColor};z-index:2;cursor:${isOwner?"grab":"default"};`;
+          bl.innerHTML=`<div class="bt" style="color:${evColor}">${isPriv?"🔒 Privado":ev.title}</div><div class="bm">${ev.start_time.slice(0,5)}–${ev.end_time.slice(0,5)}</div>`;
+          bl.title=isPriv?"Evento privado":(isOwner?"Arraste para mover · Clique para editar":ev.title);
+          // Clique: abre modal de edição
           bl.onclick=evClick=>{evClick.stopPropagation();if(isOwner)openModal(ev);};
+          // Drag para mover (só dono)
+          if(isOwner){
+            bl.draggable=true;
+            bl.ondragstart=e=>{_dragEvent=ev;e.dataTransfer.effectAllowed="move";bl.style.opacity="0.5";};
+            bl.ondragend=()=>{bl.style.opacity="1";_dragEvent=null;};
+          }
           cell.appendChild(bl);
         }
       });
@@ -828,6 +876,20 @@ async function checkConflicts(){
 
 function initModal(){
   document.getElementById("npRole").innerHTML=ROLES.map(r=>`<option value="${r.key}">${r.label}</option>`).join("");
+
+  // Paleta de cores
+  const picker=document.getElementById("evColorPicker");
+  EV_COLORS.forEach(c=>{
+    const sw=document.createElement("button"); sw.type="button";
+    sw.style.cssText=`width:24px;height:24px;border-radius:50%;background:${c.hex};border:2.5px solid transparent;cursor:pointer;flex-shrink:0;transition:transform .12s,border-color .12s;`;
+    sw.title=c.label; sw.dataset.color=c.hex;
+    sw.onclick=()=>{
+      picker.querySelectorAll("button").forEach(b=>b.style.borderColor="transparent");
+      sw.style.borderColor="#fff"; sw.style.transform="scale(1.2)";
+    };
+    picker.appendChild(sw);
+  });
+
   document.getElementById("evClose").onclick=closeModal;
   document.getElementById("evCancel").onclick=closeModal;
   document.getElementById("evModal").addEventListener("click",e=>{if(e.target===document.getElementById("evModal"))closeModal();});
@@ -854,6 +916,9 @@ function initModal(){
     const isPrivate=document.getElementById("evPrivate").checked;
     const recurrence=document.getElementById("evRecurrence").value;
     const recurUntil=document.getElementById("evRecurUntil").value;
+    // Cor selecionada (botão com borda branca)
+    const selSwatch=document.querySelector("#evColorPicker button[style*='#fff']");
+    const color=selSwatch?selSwatch.dataset.color:"#3b82f6";
 
     // Visual validation — highlight fields vazios
     const titleEl=document.getElementById("evTitle");
@@ -876,6 +941,7 @@ function initModal(){
         end_time:isAllDay ? "23:59:59" : (end||"10:00"),
         is_all_day:isAllDay,
         is_private:isPrivate,
+        color:color,
         recurrence:recurrence
       };
 
@@ -934,7 +1000,7 @@ function openModal(ev=null, presetDate=null, presetTime=null){
   const modalTitle = document.getElementById("modalTitle");
   document.getElementById("evId").value = ev ? ev.id : "";
   document.getElementById("evTitle").value = ev ? ev.title : "";
-  document.getElementById("evTitle").style.borderColor = ""; // clear validation
+  document.getElementById("evTitle").style.borderColor = "";
   document.getElementById("evDate").value = ev ? ev.event_date : (presetDate || todayISO());
   document.getElementById("evDate").style.borderColor = "";
   const defStart = presetTime || "09:00";
@@ -948,7 +1014,15 @@ function openModal(ev=null, presetDate=null, presetTime=null){
   document.getElementById("evRecurrence").value = ev ? (ev.recurrence || "none") : "none";
   document.getElementById("evRecurUntil").value = "";
   document.getElementById("recurUntilField").style.display = "none";
-  
+
+  // Restaura cor selecionada
+  const activeColor = (ev&&ev.color) ? ev.color : "#3b82f6";
+  document.querySelectorAll("#evColorPicker button").forEach(b=>{
+    const match=b.dataset.color===activeColor;
+    b.style.borderColor=match?"#fff":"transparent";
+    b.style.transform=match?"scale(1.2)":"";
+  });
+
   modalTitle.textContent = ev ? "Editar Evento" : "Novo Evento";
   document.getElementById("npBox").style.display="none";
   document.getElementById("conflictBox").classList.remove("show");
