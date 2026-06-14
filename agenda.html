@@ -129,6 +129,11 @@ textarea{resize:vertical}
 .muted{color:var(--t2);font-size:13px}
 .sec-block{margin-bottom:40px}
 
+/* day pills */
+.dpill{width:36px;height:36px;border-radius:50%;border:1px solid var(--l2);background:var(--s3);color:var(--t2);font-size:10px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-family:var(--fm);flex-shrink:0}
+.dpill:hover{border-color:var(--green);color:var(--green)}
+.dpill.on{background:var(--green-dim);border-color:var(--green);color:var(--green)}
+
 /* month view */
 .mcal-nav{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:16px}
 .mcal-nav .lbl{font-family:var(--fd);font-size:18px;text-transform:uppercase;letter-spacing:.04em;min-width:170px;text-align:center}
@@ -218,6 +223,19 @@ textarea{resize:vertical}
       <div class="field" id="endField">
         <label>Fim</label>
         <input type="time" id="evEnd" value="10:00"/>
+      </div>
+    </div>
+
+    <div class="field" style="margin-bottom:13px">
+      <label>Dias <span style="text-transform:none;font-weight:400;color:var(--t2)">— clique para selecionar múltiplos</span></label>
+      <div id="evDayPills" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+        <button type="button" class="dpill" data-dow="1">Seg</button>
+        <button type="button" class="dpill" data-dow="2">Ter</button>
+        <button type="button" class="dpill" data-dow="3">Qua</button>
+        <button type="button" class="dpill" data-dow="4">Qui</button>
+        <button type="button" class="dpill" data-dow="5">Sex</button>
+        <button type="button" class="dpill" data-dow="6">Sáb</button>
+        <button type="button" class="dpill" data-dow="0">Dom</button>
       </div>
     </div>
 
@@ -864,8 +882,7 @@ async function doDeleteEvent(ev, mode, onDone){
 function toMin(t){const[h,m]=t.split(":").map(Number);return h*60+m;}
 
 function refreshCurrentView(){
-  if(CURRENT_VIEW==="month")render();
-  else refreshEvents();
+  render(); // re-renderiza tudo incluindo o board com os novos eventos
 }
 
 /* Lembretes: agenda Notification do navegador 15min antes de cada evento de hoje */
@@ -959,6 +976,25 @@ function initModal(){
     picker.appendChild(sw);
   });
 
+  // Day pills — sincroniza com o campo data
+  document.querySelectorAll("#evDayPills .dpill").forEach(pill=>{
+    pill.onclick=()=>{
+      pill.classList.toggle("on");
+      // Se só um pill ativo, atualiza o campo data para aquele dia da semana atual
+      const active=[...document.querySelectorAll("#evDayPills .dpill.on")];
+      if(active.length===1){
+        const dow=parseInt(active[0].dataset.dow);
+        const monday=weekMonday();
+        const offset=dow===0?6:dow-1;
+        document.getElementById("evDate").value=addDays(monday,offset);
+      }
+    };
+  });
+  // Quando a data muda manualmente, sincroniza o pill ativo
+  document.getElementById("evDate").addEventListener("change",e=>{
+    syncDayPillsToDate(e.target.value);
+  });
+
   document.getElementById("evClose").onclick=closeModal;
   document.getElementById("evCancel").onclick=closeModal;
   document.getElementById("evModal").addEventListener("click",e=>{if(e.target===document.getElementById("evModal"))closeModal();});
@@ -1021,6 +1057,9 @@ function initModal(){
     if(!isAllDay && start && end && toMin(start)>=toMin(end)){toast("⚠️ Horário de fim deve ser após o início.");return;}
 
     const attIds=[...document.querySelectorAll("#evAttendees input:checked")].map(i=>i.value);
+    // Dias selecionados (pills) — para novo evento pode criar em múltiplos dias
+    const activePills=[...document.querySelectorAll("#evDayPills .dpill.on")];
+    const selectedDows=activePills.map(p=>parseInt(p.dataset.dow));
     document.getElementById("evSave").disabled=true;
     
     try{
@@ -1039,45 +1078,55 @@ function initModal(){
 
       let evId = id;
       if(id) {
+        // Edição — sempre atualiza só este evento
         const{error:upErr}=await _db.from("events").update(evData).eq("id",id);
         if(upErr) throw new Error(upErr.message||"Erro ao atualizar evento.");
         await _db.from("event_attendees").delete().eq("event_id",id);
+        if(attIds.length) await _db.from("event_attendees").insert(attIds.map(uid=>({event_id:evId,team_member_id:uid})));
       } else {
-        const{data:ev,error:insErr}=await _db.from("events").insert([{...evData,created_by:MEMBER.id}]).select().single();
+        // Criação — se múltiplos dias selecionados, cria um evento por dia
+        const monday=weekMonday();
+        const dates=selectedDows.length>0
+          ? selectedDows.map(dow=>addDays(monday, dow===0?6:dow-1))
+          : [date]; // fallback para a data do campo
+        const rows=dates.map(d=>({...evData,event_date:d,created_by:MEMBER.id}));
+        const{data:created,error:insErr}=await _db.from("events").insert(rows).select();
         if(insErr) throw new Error(insErr.message||"Erro ao salvar evento. Verifique as permissões do banco.");
-        evId = ev.id;
-      }
-      
-      if(attIds.length){
-        const{error:attErr}=await _db.from("event_attendees").insert(attIds.map(uid=>({event_id:evId,team_member_id:uid})));
-        if(attErr) console.warn("Aviso ao salvar convidados:",attErr.message);
-      }
-
-      /* Gera ocorrências futuras quando o evento é recorrente (apenas na criação) */
-      let extra=0;
-      if(!id && recurrence!=="none" && recurUntil && recurUntil>date){
-        const step = recurrence==="daily" ? d=>addDays(d,1) : recurrence==="weekly" ? d=>addDays(d,7) : d=>addMonths(d,1);
-        const occurrences=[];
-        let cursor=date;
-        for(let n=0;n<60;n++){
-          cursor=step(cursor);
-          if(cursor>recurUntil)break;
-          occurrences.push(cursor);
+        evId=(created||[])[0]?.id;
+        if(attIds.length&&created){
+          const attRows=[];
+          created.forEach(ev=>attIds.forEach(uid=>attRows.push({event_id:ev.id,team_member_id:uid})));
+          await _db.from("event_attendees").insert(attRows);
         }
-        if(occurrences.length){
-          const rows=occurrences.map(d=>({...evData,event_date:d,created_by:MEMBER.id}));
-          const{data:created,error:recurErr}=await _db.from("events").insert(rows).select();
-          if(recurErr) console.warn("Aviso nas repetições:",recurErr.message);
-          if(created&&attIds.length){
-            const attRows=[];
-            created.forEach(ev=>attIds.forEach(uid=>attRows.push({event_id:ev.id,team_member_id:uid})));
-            await _db.from("event_attendees").insert(attRows);
+        // Recorrência a partir do primeiro evento
+        let extra=0;
+        if(recurrence!=="none" && recurUntil && recurUntil>date && created){
+          const step=recurrence==="daily"?d=>addDays(d,1):recurrence==="weekly"?d=>addDays(d,7):d=>addMonths(d,1);
+          const allOcc=[];
+          created.forEach(baseEv=>{
+            let cursor=baseEv.event_date;
+            for(let n=0;n<60;n++){cursor=step(cursor);if(cursor>recurUntil)break;allOcc.push({...evData,event_date:cursor,created_by:MEMBER.id});}
+          });
+          if(allOcc.length){
+            const{data:recurCreated,error:recurErr}=await _db.from("events").insert(allOcc).select();
+            if(recurErr)console.warn("Aviso repetições:",recurErr.message);
+            if(recurCreated&&attIds.length){
+              const attRows=[];
+              recurCreated.forEach(ev=>attIds.forEach(uid=>attRows.push({event_id:ev.id,team_member_id:uid})));
+              await _db.from("event_attendees").insert(attRows);
+            }
+            extra=(recurCreated||[]).length;
           }
-          extra=(created||[]).length;
         }
+        const daysCount=dates.length;
+        toast(daysCount>1
+          ? `✅ Evento criado em ${daysCount} dias!`+(extra?` + ${extra} repetições`:"")
+          : (extra?`✅ Evento criado com ${extra} repetições!`:"✅ Evento criado!"));
+        closeModal(); refreshCurrentView();
+        return; // saída antecipada — já salvamos tudo
       }
-      
-      toast(id ? "✅ Evento atualizado!" : (extra ? `✅ Evento criado com ${extra} repetições!` : "✅ Evento criado!"));
+      // Edição: toast de confirmação
+      toast("✅ Evento atualizado!");
       closeModal();
       refreshCurrentView();
     }catch(e){
@@ -1088,6 +1137,15 @@ function initModal(){
   };
 }
 
+function syncDayPillsToDate(iso){
+  if(!iso)return;
+  const dow=new Date(iso+"T00:00:00").getDay();
+  document.querySelectorAll("#evDayPills .dpill").forEach(p=>{
+    const match=parseInt(p.dataset.dow)===dow;
+    p.classList.toggle("on",match);
+  });
+}
+
 function openModal(ev=null, presetDate=null, presetTime=null){
   const modalTitle = document.getElementById("modalTitle");
   document.getElementById("evId").value = ev ? ev.id : "";
@@ -1095,6 +1153,8 @@ function openModal(ev=null, presetDate=null, presetTime=null){
   document.getElementById("evTitle").style.borderColor = "";
   document.getElementById("evDate").value = ev ? ev.event_date : (presetDate || todayISO());
   document.getElementById("evDate").style.borderColor = "";
+  // Sincroniza pills com a data
+  syncDayPillsToDate(document.getElementById("evDate").value);
   const defStart = presetTime || "09:00";
   const defEnd = addMinToTime(defStart, 60);
   document.getElementById("evStart").value = ev ? ev.start_time.slice(0,5) : defStart;
